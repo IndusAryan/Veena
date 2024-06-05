@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:layout_gravity="bottom"
+    android:background="@color/boxItemBackground"
+    app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior">
+
+    <androidx.cardview.widget.CardView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:cardCornerRadius="18dp"
+        android:backgroundTint="@color/black">
+
+    <ImageView
+        android:id="@+id/song_image"
+        android:layout_width="150dp"
+        android:layout_height="150dp"
+        android:contentDescription="songImage"
+        android:scaleType="centerCrop"
+        tools:src="@drawable/stock_photo_clump_of_fantasy_anime_grass_digital_art_painting_on_a_white_background_1970849897_uju8_9w3p_transformed"/>
+
+    </androidx.cardview.widget.CardView>
+
+    <TextView
+        android:id="@+id/song_name"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:layout_margin="7dp"
+        android:textColor="@color/textColor"
+        tools:text="Song Name"
+        android:layout_marginTop="8dp" />
+
+    <TextView
+        android:id="@+id/artist_name"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="7dp"
+        android:textSize="15sp"
+        android:textColor="@color/grayTextColor"
+        tools:text="Artist Name" />
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="7dp">
+
+        <TextView
+            android:id="@+id/exo_position"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/textColor"
+            tools:text="00:00" />
+
+    <TextView
+        android:id="@+id/exo_duration"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        tools:text="3:30"
+        android:textColor="@color/textColor"
+        android:layout_gravity="end"
+        android:gravity="end"/>
+    </FrameLayout>
+
+    <androidx.appcompat.widget.AppCompatSeekBar
+        android:id="@+id/seek_bar"
+        android:layout_width="match_parent"
+        android:secondaryProgressTint="@color/textColor"
+        android:layout_height="wrap_content"
+        android:padding="10dp"
+        android:progressBackgroundTint="@color/grayTextColor"
+        android:progressTint="@color/white"
+        android:thumbTint="@color/white"
+        tools:progress="@integer/material_motion_duration_medium_1"
+        android:layout_margin="7dp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:padding="5dp">
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/play_button"
+        android:backgroundTint="@color/white"
+        android:textColor="@color/primaryBlackBackground"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:icon="@android:drawable/ic_media_pause"
+        app:iconTint="@color/black"
+        android:layout_margin="10dp"
+        android:text="@string/pause"
+        tools:visibility="visible" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/download"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="@color/textColor"
+        android:foreground="?attr/selectableItemBackgroundBorderless"
+        android:backgroundTint="@android:color/transparent"
+        app:strokeColor="@color/white"
+        app:strokeWidth="1dp"
+        android:layout_margin="10dp"
+        app:icon="@android:drawable/stat_sys_download"
+        android:text="@string/download"
+        app:iconTint="@color/white" />
+    </LinearLayout>
+
+</LinearLayout>
+
+

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:tools="http://schemas.android.com/tools"
+    xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item
+        android:id="@+id/navigation_home"
+        android:icon="@drawable/ic_home_black_24dp"
+        android:title="@string/title_home" />
+
+    <item
+        android:id="@+id/navigation_downloads"
+        android:icon="@drawable/download_offline_svgrepo_com"
+        android:iconTint="?attr/colorControlNormal"
+        android:title="@string/title_dashboard"
+        tools:ignore="UnusedAttribute" />
+
+    <!--<item
+        android:id="@+id/navigation_notifications"
+        android:icon="@drawable/ic_notifications_black_24dp"
+        android:title="@string/title_notifications" />-->
+
+</menu>

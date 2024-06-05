@@ -1,0 +1,20 @@
+<resources>
+    <string name="app_name">Veena</string>
+    <string name="title_home">Home</string>
+    <string name="title_dashboard">Downloads</string>
+    <string name="title_notifications">Notifications</string>
+
+    <!-- Buttons -->
+    <string name="play">Play</string>
+    <string name="pause">Pause</string>
+    <string name="resume">Resume</string>
+    <string name="download">Download</string>
+
+    <!-- Toast / Snack bar -->
+    <string name="downloading">Downloading</string>
+    <string name="download_successful">Download successful</string>
+    <string name="download_error">Error downloading, Try again</string>
+    <string name="search_failed">Error loading results, Try again</string>
+    <string name="unknown_error">Unknown error</string>
+    <string name="notification_permission_denied">Notification permission is necessary for playback</string>
+</resources>
