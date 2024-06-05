@@ -11,7 +11,7 @@ android {
 
     defaultConfig {
         applicationId = "com.aryan.veena"
-        minSdk = 24
+        minSdk = 21
         targetSdk = 34
         versionCode = 1
         versionName = "0.1"
@@ -21,6 +21,7 @@ android {
 
     buildTypes {
         release {
+
             isMinifyEnabled = false
             isShrinkResources = false
             proguardFiles(
@@ -29,6 +30,17 @@ android {
             )
         }
     }
+
+    splits {
+        abi {
+            isEnable = true
+            reset()
+            //noinspection ChromeOsAbiSupport
+            include("arm64-v8a")
+            isUniversalApk = true
+        }
+    }
+
     compileOptions {
         val jdk = JavaVersion.VERSION_17
         sourceCompatibility = jdk
@@ -38,6 +50,7 @@ android {
     kotlinOptions {
         jvmTarget = "17"
     }
+
     buildFeatures {
         viewBinding = true
     }
@@ -62,8 +75,8 @@ dependencies {
 
     // Exoplayer
     implementation(libs.androidx.media3.exoplayer)
-    implementation(libs.androidx.media3.exoplayer.dash)
-    implementation(libs.androidx.media3.exoplayer.hls)
+    //implementation(libs.androidx.media3.exoplayer.dash)
+    //implementation(libs.androidx.media3.exoplayer.hls)
     implementation(libs.androidx.media3.ui)
     implementation(libs.androidx.media3.session)
     implementation(libs.androidx.media3.common)
@@ -71,7 +84,7 @@ dependencies {
 
     // Image
     implementation(libs.coil)
-    implementation(libs.quickie.bundled) // qr scan
+    implementation(libs.quickie.unbundled) // qr scan
 
     // Navigation
     implementation(libs.androidx.lifecycle.livedata.ktx)

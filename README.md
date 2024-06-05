@@ -1,13 +1,14 @@
 
-<p align=center><image src="https://i.ibb.co/D10rxXy/ic-launcher.png" height="200" /></p>
+<p align=center><image src="app/src/main/res/mipmap-xxxhdpi/ic_launcher.png" height="200" /></p>
 <h1 align="center">Veena</h1>
 <p align="center">🪷Lightweight and open-source music downloader app for Android </p>
 <p align=center>
-  <video src="raw/example.mp4" height="512" controls></video>
+   <image src="raw/1.png" height="512"></image>
+  <image src="raw/2.png" height="512"></image>
 </p>
 <h1>⚠️Note</h1>
 
-- Veena is a more focused to become a Downloader not player, Please don't request any big player features.
+- Veena is more focused to become a Downloader not player, Please don't request any big player features.
 - Only source as of today is JioSaavn [Bharat (India) exclusive]
 - Development will be slow due to personal reasons(can be halted too). Contributions are welcome except translations.
 
@@ -32,7 +33,7 @@
 - More results on search(paging) - Downloading for Devices < OREO(8) - More sources(Spotify, YTM, Gaana, etc) - Library - Settings - Download and Search History - ...
 
 <h1>⚠️ Copyright</h1>
-Veena uses open-source api's available in public domain and are free and open source, If any content violates DMCA   or it's terms, Please contact the respective API owners not promoters and owners of Veena app, Thank You.
+Veena uses api's available in public domain and are free and open source, If any content violates DMCA or it's terms, Please contact the respective API owners not the promoters and owners of Veena app, Thank You.
 
 <h1>Licence</h1>
 This program is free software: you can redistribute it and/or modify
