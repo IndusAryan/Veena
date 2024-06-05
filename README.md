@@ -3,7 +3,7 @@
 <h1 align="center">Veena</h1>
 <p align="center">🪷Lightweight and open-source music downloader app for Android </p>
 <p align=center>
-  <video src="raw/example.mp4" height="512" controls></video>
+  <video src="raw/example.mp4" width="200" height="512" controls></video>
 </p>
 <h1>⚠️Note</h1>
 
