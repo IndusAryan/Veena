@@ -69,17 +69,14 @@
         android:gravity="end"/>
     </FrameLayout>
 
-    <androidx.appcompat.widget.AppCompatSeekBar
+    <com.google.android.material.slider.Slider
         android:id="@+id/seek_bar"
         android:layout_width="match_parent"
-        android:secondaryProgressTint="@color/textColor"
         android:layout_height="wrap_content"
-        android:padding="10dp"
-        android:progressBackgroundTint="@color/grayTextColor"
-        android:progressTint="@color/white"
-        android:thumbTint="@color/white"
-        tools:progress="@integer/material_motion_duration_medium_1"
-        android:layout_margin="7dp" />
+        tools:value="0.5"
+        app:trackColorActive="@color/material_dynamic_primary70"
+        app:trackColorInactive="@color/grayTextColor"
+        app:trackHeight="10dp" />
 
     <LinearLayout
         android:layout_width="match_parent"

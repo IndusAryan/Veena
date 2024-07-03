@@ -52,8 +52,10 @@
             android:layout_height="wrap_content"
             android:textSize="15sp"
             android:textStyle="italic"
+            android:ellipsize="end"
+            android:maxLines="2"
             android:textColor="@color/textColor"
-            tools:text="Mahendra Kapoor"/>
+            tools:text="NO copyright music"/>
 
         <TextView
             android:id="@+id/song_duration"

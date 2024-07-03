@@ -12,9 +12,15 @@
         android:id="@+id/search_view"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:hint="Search music"
-        app:backgroundTint="@color/primaryBlackBackground"
+        android:hint="Search music..."
+        app:backgroundTint="@color/primaryGrayBackground"
         app:layout_anchor="@id/search_bar">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/search_suggestions"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"/>
     </com.google.android.material.search.SearchView>
 
     <androidx.recyclerview.widget.RecyclerView
@@ -32,10 +38,12 @@
         android:id="@+id/shimmer_view"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        app:shimmer_duration="600"
+        app:shimmer_duration="1000"
+        app:shimmer_tilt="45"
         android:visibility="gone"
-        android:layout_marginTop="137dp"
-        app:shimmer_shape="radial">
+        tools:visibility="visible"
+        android:layout_marginTop="?actionBarSize"
+        app:shimmer_shape="linear">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -43,7 +51,6 @@
             android:orientation="vertical"
             android:padding="5dp">
 
-            <include layout="@layout/shimmer_song_item" />
             <include layout="@layout/shimmer_song_item" />
             <include layout="@layout/shimmer_song_item" />
             <include layout="@layout/shimmer_song_item" />
@@ -73,15 +80,31 @@
             android:backgroundTint="@color/primaryGrayBackground"
             android:hint="Search or Insert URL" />
 
-    </com.google.android.material.appbar.AppBarLayout>
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/provider_chips"
+            app:singleSelection="true"
+            app:selectionRequired="true"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="12dp">
 
-    <!--<com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/cameraButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom|end"
-        android:layout_marginBottom="?attr/actionBarSize"
-        android:src="@android:drawable/presence_video_online"/>-->
+            <com.google.android.material.chip.Chip
+                android:id="@+id/jiosaavn"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:checked="true"
+                android:text="JioSaavn"
+                style="@style/Widget.MaterialComponents.Chip.Choice" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/yt"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="YouTube"
+                style="@style/Widget.MaterialComponents.Chip.Choice" />
+        </com.google.android.material.chip.ChipGroup>
+
+    </com.google.android.material.appbar.AppBarLayout>
 
     <ProgressBar
         android:id="@+id/progress_bar"
@@ -90,7 +113,7 @@
         android:visibility="gone"
         android:layout_gravity="center" />
 
-    <LinearLayout
+   <!-- <LinearLayout
         android:id="@+id/home_fabs"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -107,6 +130,6 @@
             android:layout_margin="25dp"
             app:srcCompat="@android:drawable/presence_video_online"/>
 
-    </LinearLayout>
+    </LinearLayout>-->
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

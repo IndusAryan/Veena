@@ -5,6 +5,7 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
     <!-- <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" /> -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
 
@@ -26,9 +27,6 @@
         android:theme="@style/Theme.VeenaLight"
         tools:targetApi="tiramisu">
         <activity
-            android:name=".ui.activities.QRActivity"
-            android:exported="false" />
-        <activity
             android:name=".ui.activities.MainActivity"
             android:configChanges="orientation|screenSize|smallestScreenSize"
             android:exported="true"
@@ -41,25 +39,22 @@
             </intent-filter>
         </activity>
 
-        <!--<service
-            android:name=".services.PlaybackService"
-            android:exported="true"
-            android:foregroundServiceType="mediaPlayback">
+        <receiver android:name="androidx.media.session.MediaButtonReceiver"
+            android:exported="true">
             <intent-filter>
-                <action android:name="androidx.media3.session.MediaSessionService" />
-                <action android:name="android.media.browse.MediaBrowserService" />
+                <action android:name="android.intent.action.MEDIA_BUTTON" />
             </intent-filter>
-        </service>-->
+        </receiver>
 
-        <service
-            android:name=".services.PlayService"
-            android:exported="true"
-            android:foregroundServiceType="mediaPlayback">
-            <intent-filter>
-                <action android:name="androidx.media3.session.MediaSessionService" />
-                <action android:name="android.media.browse.MediaBrowserService" />
-            </intent-filter>
-        </service>
+    <service
+        android:name=".services.PlayingService"
+        android:enabled="true"
+        android:exported="true"
+        android:foregroundServiceType="mediaPlayback"
+        android:permission="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK">
+        <intent-filter>
+            <action android:name="androidx.media3.session.MediaSessionService"/>
+        </intent-filter>
+    </service>
     </application>
-
 </manifest>

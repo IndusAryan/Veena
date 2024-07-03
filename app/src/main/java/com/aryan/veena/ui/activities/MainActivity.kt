@@ -1,8 +1,6 @@
 package com.aryan.veena.ui.activities
 
 import android.Manifest
-import android.app.NotificationManager
-import android.content.Context
 import android.os.Build
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
@@ -13,21 +11,27 @@ import com.aryan.veena.R
 import com.aryan.veena.databinding.ActivityMainBinding
 import com.aryan.veena.helpers.PermissionHelper.isGranted
 import com.aryan.veena.helpers.PermissionHelper.request
-import com.aryan.veena.ui.fragments.PlayerSheetFragment
-//import com.aryan.veena.utils.NowPlayingNotification
+import com.aryan.veena.utils.CoroutineUtils.ioScope
 import com.google.android.material.bottomnavigation.BottomNavigationView
+import dev.toastbits.ytmkt.endpoint.SearchEndpoint
+import dev.toastbits.ytmkt.endpoint.SearchResults
+import dev.toastbits.ytmkt.endpoint.SongFeedEndpoint
+import dev.toastbits.ytmkt.endpoint.SongFeedLoadResult
+import dev.toastbits.ytmkt.impl.youtubei.YoutubeiApi
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.cio.CIO
 
 class MainActivity : AppCompatActivity() {
 
-    private lateinit var binding: ActivityMainBinding
+    private var binding: ActivityMainBinding? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
         binding = ActivityMainBinding.inflate(layoutInflater)
-        setContentView(binding.root)
+        setContentView(binding?.root)
+        val client = HttpClient(CIO)
 
-        val navView: BottomNavigationView = binding.navView
+        val navView: BottomNavigationView = binding?.navView ?: return
 
         val navController = findNavController(R.id.nav_host_fragment)
         val appBarConfiguration = AppBarConfiguration(

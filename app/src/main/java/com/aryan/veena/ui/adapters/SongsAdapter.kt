@@ -4,10 +4,10 @@ import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.aryan.veena.databinding.SongItemBinding
-import com.aryan.veena.datamodels.Result
+import com.aryan.veena.repository.datamodels.NowPlayingModel
 import com.aryan.veena.ui.viewholders.SongViewHolder
 
-class SongsAdapter(private var songs: List<Result>) :
+class SongsAdapter(private var songs: List<NowPlayingModel>) :
     RecyclerView.Adapter<SongViewHolder>() {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): SongViewHolder {
@@ -24,7 +24,7 @@ class SongsAdapter(private var songs: List<Result>) :
         return songs.size
     }
 
-    fun updateSongs(newSongs: List<Result>) {
+    fun updateSongs(newSongs: List<NowPlayingModel>) {
         songs = newSongs
         notifyDataSetChanged()
     }

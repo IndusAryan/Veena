@@ -16,5 +16,6 @@
     <string name="download_error">Error downloading, Try again</string>
     <string name="search_failed">Error loading results, Try again</string>
     <string name="unknown_error">Unknown error</string>
+    <string name="url_player_error">Invalid URL, cannot play this song.</string>
     <string name="notification_permission_denied">Notification permission is necessary for playback</string>
 </resources>

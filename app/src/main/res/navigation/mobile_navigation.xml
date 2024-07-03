@@ -11,9 +11,15 @@
         android:label="@string/title_home"
         tools:layout="@layout/fragment_home" />
 
-    <fragment
+    <!--<fragment
         android:id="@+id/navigation_downloads"
         android:name="com.aryan.veena.ui.fragments.DownloadsFragment"
+        android:label="@string/title_dashboard"
+        tools:layout="@layout/fragment_downloads" />-->
+
+    <fragment
+        android:id="@+id/navigation_downloads"
+        android:name="com.aryan.veena.sampleApp.SampleFragment"
         android:label="@string/title_dashboard"
         tools:layout="@layout/fragment_downloads" />
 

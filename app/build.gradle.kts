@@ -45,6 +45,7 @@ android {
         val jdk = JavaVersion.VERSION_17
         sourceCompatibility = jdk
         targetCompatibility = jdk
+        isCoreLibraryDesugaringEnabled = true
     }
 
     kotlinOptions {
@@ -55,6 +56,8 @@ android {
         viewBinding = true
     }
 }
+
+
 
 dependencies {
     // Networking
@@ -67,7 +70,10 @@ dependencies {
     implementation(libs.androidx.activity)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
-    
+    implementation(libs.androidx.legacy.support.v4)
+    implementation(libs.androidx.fragment.ktx)
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
+
     // Design
     implementation(libs.material)
     implementation(libs.shimmer)
@@ -82,9 +88,16 @@ dependencies {
     implementation(libs.androidx.media3.common)
     implementation(libs.androidx.media)
 
+    implementation("io.ktor:ktor-client-core:2.3.12")
+    implementation("io.ktor:ktor-client-cio:2.3.12")
+    implementation("dev.toastbits.ytmkt:ytmkt-android:0.2.5")
+
+    implementation(libs.kotlinx.coroutines.core)
+    implementation(libs.kotlinx.coroutines.android)
+    // newpipe for yt
+    implementation("com.github.teamnewpipe:newpipeextractor:c3c6de8")
     // Image
     implementation(libs.coil)
-    implementation(libs.quickie.unbundled) // qr scan
 
     // Navigation
     implementation(libs.androidx.lifecycle.livedata.ktx)

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:layout_margin="15dp"
+    android:padding="10dp">
+
+        <TextView
+            android:id="@+id/suggestionName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="15sp"
+            android:textStyle="normal"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            app:drawableEndCompat="@drawable/ic_arrow_query"
+            tools:text="ncs music" />
+
+</FrameLayout>

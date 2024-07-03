@@ -1,6 +1,5 @@
-package com.aryan.veena.interfaces
+package com.aryan.veena.repository.jiosaavn
 
-import com.aryan.veena.datamodels.Root
 import retrofit2.http.GET
 import retrofit2.http.Query
 

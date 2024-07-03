@@ -3,45 +3,53 @@ package com.aryan.veena.ui.viewholders
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.RecyclerView
+import coil.imageLoader
 import coil.load
+import coil.request.ImageRequest
+import coil.transform.CircleCropTransformation
 import com.aryan.veena.R
+import com.aryan.veena.VeenaApp
 import com.aryan.veena.databinding.SongItemBinding
-import com.aryan.veena.datamodels.Result
-import com.aryan.veena.ui.fragments.PlayerSheetFragment
+import com.aryan.veena.repository.datamodels.NowPlayingModel
+import com.aryan.veena.ui.fragments.PlayerFragment
+import com.aryan.veena.utils.ImageLoader
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
 
 class SongViewHolder(private val binding: SongItemBinding) :
     RecyclerView.ViewHolder(binding.root) {
 
-    fun bind(song: Result) {
-        val imageToLoad = song.image.find { it.quality == "500x500" }
-        val downloadURl96kbps = song.downloadUrl.find { it.quality == "96kbps" }?.url.toString()
-        val artists = song.artists?.primary?.getOrNull(0)?.name
+    fun bind(song: NowPlayingModel) {
+
+        val context = itemView.context
+        val imageLoader = ImageLoader.getInstance(context)
 
         binding.songName.text = song.name
-        binding.artistName.text = artists
-        binding.songDuration.text = song.duration.toDuration(DurationUnit.SECONDS).toString()
+        binding.artistName.text = song.artistName
+        binding.songDuration.text = song.duration?.toDuration(DurationUnit.SECONDS).toString()
 
-        binding.songImage.load(imageToLoad?.url) {
+        binding.songImage.load(song.imageUrl, imageLoader) {
             crossfade(true)
-            placeholder(android.R.drawable.ic_menu_help)
+            placeholder(R.drawable.ic_launcher_foreground)
             error(R.drawable.ic_launcher_foreground)
         }
 
-        Log.i("Image", song.image.toString())
-        Log.i("Download", song.downloadUrl.toString())
+        Log.i("Image", song.imageUrl.toString())
+        Log.i("Download", "${song.url}")
 
         binding.root.setOnClickListener {
             val fragment =
-                PlayerSheetFragment.newInstance(
-                    imageToLoad?.url ?: "",
-                    song.name,
-                    downloadURl96kbps,
-                    artists,
+                PlayerFragment.newInstance(
+                    NowPlayingModel(
+                        id = song.id,
+                        url = song.url,
+                        name = song.name.toString(),
+                        artistName = song.artistName,
+                        imageUrl = song.imageUrl ?: "",
+                    )
                 )
             fragment.show((binding.root.context as AppCompatActivity).supportFragmentManager, "audioPlayer")
-            Log.i("SongInfoClick", downloadURl96kbps)
+            Log.i("SongInfoClick", "${song.url}")
         }
     }
 }
