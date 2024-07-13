@@ -7,7 +7,7 @@ import androidx.lifecycle.ViewModel
 class DownloadsViewModel : ViewModel() {
 
     private val _text = MutableLiveData<String>().apply {
-        value = "Empty..."
+        value = "⚠ Library and History is currently work in progress :)"
     }
     val text: LiveData<String> = _text
 }

@@ -1,8 +1,8 @@
 <resources>
     <string name="app_name">Veena</string>
     <string name="title_home">Home</string>
-    <string name="title_dashboard">Downloads</string>
-    <string name="title_notifications">Notifications</string>
+    <string name="title_dashboard">Library</string>
+    <string name="title_notifications">Settings</string>
 
     <!-- Buttons -->
     <string name="play">Play</string>

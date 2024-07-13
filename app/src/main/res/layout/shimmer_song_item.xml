@@ -14,7 +14,7 @@
         <androidx.cardview.widget.CardView
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            app:cardCornerRadius="15dp"
+            app:cardCornerRadius="10dp"
             app:cardElevation="10dp"
             app:cardMaxElevation="12dp"
             app:cardBackgroundColor="@color/primaryGrayBackground"
@@ -56,7 +56,7 @@
                 android:layout_height="13dp"
                 android:layout_marginTop="10dp"
                 android:textSize="15sp"
-                android:textColor="@color/white"
+                android:textColor="@color/textColor"
                 android:background="@color/grayTextColor"
                 android:textStyle="bold"
                 android:shadowRadius="2"

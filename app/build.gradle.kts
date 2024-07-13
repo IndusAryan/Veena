@@ -72,7 +72,8 @@ dependencies {
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.legacy.support.v4)
     implementation(libs.androidx.fragment.ktx)
-    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
+    implementation(libs.androidx.preference.ktx)
+    coreLibraryDesugaring(libs.desugar.jdk.libs)
 
     // Design
     implementation(libs.material)
@@ -87,15 +88,17 @@ dependencies {
     implementation(libs.androidx.media3.session)
     implementation(libs.androidx.media3.common)
     implementation(libs.androidx.media)
-
-    implementation("io.ktor:ktor-client-core:2.3.12")
-    implementation("io.ktor:ktor-client-cio:2.3.12")
-    implementation("dev.toastbits.ytmkt:ytmkt-android:0.2.5")
+    implementation(libs.nicehttp)
+    implementation(libs.ktor.client.core)
+    implementation(libs.ktor.client.cio)
+    implementation(libs.ytmkt.android)
 
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.androidx.datastore.preferences)
     // newpipe for yt
-    implementation("com.github.teamnewpipe:newpipeextractor:c3c6de8")
+    implementation(libs.converter.scalars)
+    implementation(libs.newpipeextractor)
     // Image
     implementation(libs.coil)
 

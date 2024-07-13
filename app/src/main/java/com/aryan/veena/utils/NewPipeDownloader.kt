@@ -2,22 +2,17 @@ package com.aryan.veena.utils
 
 import okhttp3.OkHttpClient
 import okhttp3.RequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.ResponseBody
 import org.schabi.newpipe.extractor.downloader.Downloader
 import org.schabi.newpipe.extractor.downloader.Request
 import org.schabi.newpipe.extractor.downloader.Response
 import org.schabi.newpipe.extractor.exceptions.ReCaptchaException
-import java.io.IOException
 import java.util.concurrent.TimeUnit
 
 class NewPipeDownloader private constructor(builder: OkHttpClient.Builder) : Downloader() {
-    private val client: OkHttpClient
+    private val client: OkHttpClient = builder.readTimeout(15, TimeUnit.SECONDS).build()
 
-    init {
-        client = builder.readTimeout(30, TimeUnit.SECONDS).build()
-    }
-
-    @Throws(IOException::class, ReCaptchaException::class)
     override fun execute(request: Request): Response {
         val httpMethod = request.httpMethod()
         val url = request.url()
@@ -25,7 +20,7 @@ class NewPipeDownloader private constructor(builder: OkHttpClient.Builder) : Dow
         val dataToSend = request.dataToSend()
         var requestBody: RequestBody? = null
         if (dataToSend != null) {
-            requestBody = RequestBody.create(null, dataToSend)
+            requestBody = dataToSend.toRequestBody(null, 0, dataToSend.size)
         }
         val requestBuilder: okhttp3.Request.Builder = okhttp3.Request.Builder().method(httpMethod, requestBody).url(url).addHeader("User-Agent", USER_AGENT)
         for ((headerName, headerValueList) in headers) {
@@ -43,11 +38,8 @@ class NewPipeDownloader private constructor(builder: OkHttpClient.Builder) : Dow
             response.close()
             throw ReCaptchaException("reCaptcha Challenge requested", url)
         }
-        val body: ResponseBody? = response.body
-        var responseBodyToReturn: String? = null
-        if (body != null) {
-            responseBodyToReturn = body.string()
-        }
+        val body: ResponseBody = response.body
+        val responseBodyToReturn: String = body.string()
         val latestUrl: String = response.request.url.toString()
         return Response(
             response.code, response.message, response.headers.toMultimap(), responseBodyToReturn, latestUrl
@@ -61,19 +53,19 @@ class NewPipeDownloader private constructor(builder: OkHttpClient.Builder) : Dow
         /**
          * It's recommended to call exactly once in the entire lifetime of the application.
          *
-         * @param builder if null, default builder will be used
-         * @return a new instance of [DownloaderTestImpl]
+         * builder if null, default builder will be used
+         * @return a new instance of DownloaderTestImpl
          */
-        fun init(builder: OkHttpClient.Builder?): Downloader? {
+        private fun init(): Downloader? {
             instance = NewPipeDownloader(
-                builder ?: OkHttpClient.Builder()
+                 OkHttpClient.Builder()
             )
             return instance
         }
 
         fun getInstance(): Downloader? {
             if (instance == null) {
-                init(null)
+                init()
             }
             return instance
         }

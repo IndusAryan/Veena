@@ -9,10 +9,6 @@
     <!-- <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" /> -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
 
-    <uses-feature android:name="android.hardware.camera" />
-
-    <uses-permission android:name="android.permission.CAMERA" />
-
     <application
         android:name=".VeenaApp"
         android:allowBackup="true"
@@ -24,7 +20,7 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.VeenaLight"
+        android:theme="@style/BaseTheme"
         tools:targetApi="tiramisu">
         <activity
             android:name=".ui.activities.MainActivity"

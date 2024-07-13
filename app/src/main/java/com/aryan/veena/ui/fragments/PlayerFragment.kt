@@ -27,18 +27,16 @@ import coil.load
 import com.aryan.veena.R
 import com.aryan.veena.databinding.PlayerFragmentBinding
 import com.aryan.veena.helpers.DownloadHelper.downloadFile
-import com.aryan.veena.repository.datamodels.NowPlayingModel
-import com.aryan.veena.repository.datamodels.YTMKTVideoEndpoint
-import com.aryan.veena.repository.piped.PipedAPI
+import com.aryan.veena.repository.NowPlayingModel
+import com.aryan.veena.repository.Provider
 import com.aryan.veena.services.PlayingService
 import com.aryan.veena.utils.CoroutineUtils.ioScope
+import com.aryan.veena.utils.CoroutineUtils.ioScopeContext
 import com.aryan.veena.utils.CoroutineUtils.mainScope
+import com.aryan.veena.utils.ToastUtil.showToast
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.google.android.material.slider.Slider
 import com.google.common.util.concurrent.MoreExecutors
-import dev.toastbits.ytmkt.formats.VideoFormatsEndpoint
-import dev.toastbits.ytmkt.impl.youtubei.YoutubeiApi
-import dev.toastbits.ytmkt.impl.youtubei.endpoint.YTMLoadSongEndpoint
 import java.io.ByteArrayOutputStream
 import java.util.Locale
 
@@ -55,6 +53,7 @@ class PlayerFragment : BottomSheetDialogFragment() {
     private var serviceClosedReceiver: BroadcastReceiver? = null
 
     private var playerData: NowPlayingModel? = null
+    private var streamableURL : String? = null
 
     @RequiresApi(VERSION_CODES.TIRAMISU)
     override fun onCreateView(
@@ -75,56 +74,54 @@ class PlayerFragment : BottomSheetDialogFragment() {
         super.onViewCreated(view, savedInstanceState)
         serviceReceiver()
 
-        // Retrieve and set the song details
-        /*playerData?.let {
-            // Use playerData fields directly
-            val songID = it.id
-            val songTitle = it.name
-            val songUrl = it.url
-            val songArtist = it.artistName
-            val imageUrl = it.imageUrl
-            // Update your UI with the retrieved data
-        }*/
-
-        /*if (playerData?.id != null && playerData?.url.isNullOrEmpty()) {
-            //val ytURI = "https://youtu.be/$songID"
-            Log.d("ID", playerData?.id.toString())
-            ioScope { loadSongFromID(playerData?.id.toString() ?: return@ioScope) }
-        }*/
-
-        fun play(url: String?, id: String? = null) {
-            if (url == null && id != null) {
-                ioScope {
-                    val streamableURL = loadSongFromID(id)
-                    if (!streamableURL.isNullOrEmpty()) {
-                        mainScope {
-                            play(streamableURL)
-                        }
+        suspend fun play(url: String?, id: String? = null, provider: Provider? = null) {
+            if (url == null && id != null && provider != null) {
+                ioScopeContext {
+                    try {
+                        streamableURL = provider.musicProvider.getSong(id)
+                        Log.d("ID", id)
+                        if (!streamableURL.isNullOrEmpty()) {
+                            // mainScope {
+                            try {
+                                Log.d("streaming", streamableURL!!)
+                                play(streamableURL)
+                                setupDownloadButton(
+                                    playerData?.url ?: streamableURL ?: return@ioScopeContext
+                                    ,playerData?.name ?: "Unknown" , playerData?.artistName ?: "Unknown")
+                            } catch (e: Exception) {
+                                Log.e("PlayError", "Error in mainScope: ${e.message}", e)
+                            }
+                        } else { showToast(requireContext(), R.string.search_failed) }
+                        //}
+                    } catch (e: Exception) {
+                        Log.e("FetchError", "Error fetching streamable URL: ${e.message}", e)
                     }
                 }
                 return
             }
 
             url?.let {
-                val mediaItem = MediaItem.Builder()
-                    .setMediaId("media-${System.currentTimeMillis()}")
-                    .setUri(url)
-                    .setMediaMetadata(
-                        MediaMetadata.Builder()
-                            .setTitle(playerData?.name)
-                            .setArtist(playerData?.artistName)
-                            .setArtworkData(
-                                thumbnailBitmap?.toByteArray(),
-                                MediaMetadata.PICTURE_TYPE_FRONT_COVER
-                            )
-                            .build()
-                    )
-                    .build()
+                activity?.runOnUiThread {
+                    val mediaItem = MediaItem.Builder()
+                        .setMediaId("media-${System.currentTimeMillis()}")
+                        .setUri(url)
+                        .setMediaMetadata(
+                            MediaMetadata.Builder()
+                                .setTitle(playerData?.name)
+                                .setArtist(playerData?.artistName)
+                                .setArtworkData(
+                                    thumbnailBitmap?.toByteArray(),
+                                    MediaMetadata.PICTURE_TYPE_FRONT_COVER
+                                )
+                                .build()
+                        )
+                        .build()
 
-                mediaController?.apply {
-                    setMediaItem(mediaItem)
-                    prepare()
-                    play()
+                    mediaController?.apply {
+                        setMediaItem(mediaItem)
+                        prepare()
+                        play()
+                    }
                 }
             }
         }
@@ -140,7 +137,9 @@ class PlayerFragment : BottomSheetDialogFragment() {
             setupMediaController()
             // Start playback after the controller is set up
             if (!playerData?.url.isNullOrEmpty() || playerData?.id != null) {
-                play(playerData?.url, playerData?.id)
+                mainScope {
+                    play(playerData?.url, playerData?.id, playerData?.provider)
+                }
             }
 
         }, MoreExecutors.directExecutor())
@@ -158,41 +157,9 @@ class PlayerFragment : BottomSheetDialogFragment() {
 
         setupPlayButton()
         setupSeekBar()
-        //setupDownloadButton(songUrl, songTitle, songArtist)
-    }
-
-    private suspend fun loadSongFromID(ytURI: String) : String? {
-        var streamableYTurl : String? = null
-
-            try {
-                val videoEndpoint : VideoFormatsEndpoint = YoutubeiApi().VideoFormats
-                val video = videoEndpoint.getVideoFormats(ytURI).getOrThrow()
-                val url48Kbps = video.find { it.itag == 139 }?.url // mp4 mp4a
-                val url53kbps = video.find { it.itag == 249 }?.url // webm opus
-                val url69kbps = video.find { it.itag == 250 }?.url // webm opus
-                val url126kbps = video.find { it.itag == 140 }?.url // mp4 m4a
-                val url133kbps = video.find { it.itag == 251 }?.url // webm opus
-
-                println("48KBPS $url48Kbps")
-                val videoInfo = video.forEach { it ->
-                        println(it.url)
-                        println(it.itag)
-                        println(it.audioTrack)
-                        println(it.audioTrackType)
-                        println(it.bitrate)
-                        println(it.mimeType)
-
-                }
-                streamableYTurl = url48Kbps
-                /*val fetchURI = "https://www.youtube.com/watch?v=$ytURI"
-                println(fetchURI)
-                val pipedStream = PipedAPI.pipedService.getStreamURL(fetchURI)
-                println(pipedStream.root.audioStreams)*/
-            } catch (t: Throwable) {
-                t.printStackTrace()
-            }
-        println(streamableYTurl)
-        return streamableYTurl
+        /*setupDownloadButton(
+            playerData?.url ?: streamableURL ?: return
+            ,playerData?.name ?: "Unknown" , playerData?.artistName ?: "Unknown")*/
     }
 
     @RequiresApi(VERSION_CODES.O)
@@ -221,7 +188,7 @@ class PlayerFragment : BottomSheetDialogFragment() {
 
     private fun setupSeekBar() {
         binding.seekBar.apply {
-            setCustomThumbDrawable(R.drawable.custom_thumb)
+            //setCustomThumbDrawable(R.drawable.custom_thumb)
             addOnChangeListener(Slider.OnChangeListener { _, value, fromUser ->
                 if (fromUser) {
                     mediaController?.seekTo(value.toLong())

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <PreferenceCategory
+        android:title="Theme">
+
+        <ListPreference
+            android:key="theme"
+            android:title="App Theme"
+            app:entries="@array/themes"
+
+            app:useSimpleSummaryProvider="true"
+            app:icon="@drawable/ic_palette"
+            app:entryValues="@array/themesValue"
+            android:dialogIcon="@drawable/ic_palette" />
+
+
+    <ListPreference
+        app:defaultValue="pink"
+        app:entries="@array/accents"
+        app:entryValues="@array/accentsValue"
+        app:key="accent"
+        app:title="Accent"
+        app:icon="@drawable/ic_accent"
+        app:useSimpleSummaryProvider="true" />
+    </PreferenceCategory>
+</PreferenceScreen>

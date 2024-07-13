@@ -7,22 +7,21 @@
     android:orientation="vertical"
     android:padding="16dp"
     android:layout_gravity="bottom"
-    android:background="@color/boxItemBackground"
     app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior">
 
     <androidx.cardview.widget.CardView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        app:cardCornerRadius="18dp"
-        android:backgroundTint="@color/black">
+        app:cardCornerRadius="10dp">
 
     <ImageView
         android:id="@+id/song_image"
         android:layout_width="150dp"
         android:layout_height="150dp"
+        android:elevation="5dp"
         android:contentDescription="songImage"
         android:scaleType="centerCrop"
-        tools:src="@drawable/stock_photo_clump_of_fantasy_anime_grass_digital_art_painting_on_a_white_background_1970849897_uju8_9w3p_transformed"/>
+        tools:src="@drawable/ic_launcher_background"/>
 
     </androidx.cardview.widget.CardView>
 
@@ -33,7 +32,6 @@
         android:textSize="20sp"
         android:textStyle="bold"
         android:layout_margin="7dp"
-        android:textColor="@color/textColor"
         tools:text="Song Name"
         android:layout_marginTop="8dp" />
 
@@ -43,20 +41,18 @@
         android:layout_height="wrap_content"
         android:layout_margin="7dp"
         android:textSize="15sp"
-        android:textColor="@color/grayTextColor"
         tools:text="Artist Name" />
 
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:padding="7dp">
+        android:padding="5dp">
 
         <TextView
             android:id="@+id/exo_position"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textColor="@color/textColor"
             tools:text="00:00" />
 
     <TextView
@@ -64,7 +60,6 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         tools:text="3:30"
-        android:textColor="@color/textColor"
         android:layout_gravity="end"
         android:gravity="end"/>
     </FrameLayout>
@@ -74,8 +69,8 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         tools:value="0.5"
-        app:trackColorActive="@color/material_dynamic_primary70"
-        app:trackColorInactive="@color/grayTextColor"
+        app:thumbHeight="17dp"
+        app:thumbWidth="6dp"
         app:trackHeight="10dp" />
 
     <LinearLayout
@@ -86,29 +81,24 @@
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/play_button"
-        android:backgroundTint="@color/white"
-        android:textColor="@color/primaryBlackBackground"
+        style="@style/Widget.Material3.Button.TonalButton.Icon"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         app:icon="@android:drawable/ic_media_pause"
-        app:iconTint="@color/black"
         android:layout_margin="10dp"
         android:text="@string/pause"
         tools:visibility="visible" />
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/download"
+        style="@style/Widget.Material3.Button.TonalButton.Icon"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textColor="@color/textColor"
         android:foreground="?attr/selectableItemBackgroundBorderless"
-        android:backgroundTint="@android:color/transparent"
-        app:strokeColor="@color/white"
-        app:strokeWidth="1dp"
+
         android:layout_margin="10dp"
         app:icon="@android:drawable/stat_sys_download"
-        android:text="@string/download"
-        app:iconTint="@color/white" />
+        android:text="@string/download" />
     </LinearLayout>
 
 </LinearLayout>
