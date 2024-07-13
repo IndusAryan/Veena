@@ -26,6 +26,7 @@ jobs:
         run: |
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > $GITHUB_WORKSPACE/keystore.jks
           chmod 600 keystore.jks
+          ls -l ${GITHUB_WORKSPACE}/keystore.jks
 
       - name: Extract version name
         id: extract_version
