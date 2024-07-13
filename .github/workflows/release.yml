@@ -34,7 +34,7 @@ jobs:
 
       - name: Build with Gradle
         env:
-          KEYSTORE_PATH: keystore.jks
+          KEYSTORE_PATH: ${{ secrets.KEYSTORE_BASE64 }}
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
@@ -44,14 +44,14 @@ jobs:
         run: ls -R app/build/outputs/apk/release/
 
       - name: Generate Changelog
-        run: echo "# Release v${{ env.VERSION_NAME }}" > ${{ github.workspace }}/CHANGELOG.txt
+        run: echo "# Release v${{ env.VERSION_NAME }}" > $GITHUB_WORKSPACE/CHANGELOG.txt
 
       - name: Release
         uses: softprops/action-gh-release@v2
         if: github.ref == 'refs/heads/master'
         with:
           files: app/build/outputs/apk/release/*.apk
-          body_path: ${{ github.workspace }}/CHANGELOG.txt
+          body_path: $GITHUB_WORKSPACE/CHANGELOG.txt
           tag_name: v${{ env.VERSION_NAME }}
           name: Release v${{ env.VERSION_NAME }}
         env:

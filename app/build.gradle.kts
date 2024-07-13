@@ -1,5 +1,3 @@
-import org.gradle.internal.impldep.org.eclipse.jgit.lib.InflaterCache.release
-
 plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.jetbrainsKotlinAndroid)
@@ -21,17 +19,6 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
-    buildTypes {
-        release {
-            isMinifyEnabled = false
-            isShrinkResources = false
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
-        }
-    }
-
     signingConfigs {
         create("release") {
             storeFile = file("keystore.jks")
@@ -41,6 +28,18 @@ android {
         }
     }
 
+    buildTypes {
+        release {
+            isMinifyEnabled = false
+            isShrinkResources = false
+            signingConfig = signingConfigs.getByName("release")
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+        }
+    }
+    
     splits {
         abi {
             isEnable = true
@@ -66,8 +65,6 @@ android {
         viewBinding = true
     }
 }
-
-
 
 dependencies {
     // Networking
