@@ -5,9 +5,6 @@ plugins {
     kotlin("plugin.serialization") version "1.9.22"
 }
 
-val tmpFilePath = System.getProperty("user.home") + "/work/_temp/keystore/"
-val releaseStoreFile: File? = File(tmpFilePath).listFiles()?.first()
-
 android {
     namespace = "com.aryan.veena"
     compileSdk = 34
@@ -24,12 +21,10 @@ android {
 
     signingConfigs {
         create("release") {
-            if (releaseStoreFile != null) {
-                storeFile = file(releaseStoreFile)
-                storePassword = System.getenv("KEYSTORE_PASSWORD")
-                keyAlias = System.getenv("KEY_ALIAS")
-                keyPassword = System.getenv("KEY_PASSWORD")
-            }
+            storeFile = file("$projectDir/keystore.jks")
+            storePassword = System.getenv("KEYSTORE_PASSWORD")
+            keyAlias = System.getenv("KEY_ALIAS")
+            keyPassword = System.getenv("KEY_PASSWORD")
         }
     }
 
