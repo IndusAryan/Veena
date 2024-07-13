@@ -33,9 +33,6 @@ jobs:
           VERSION_NAME=$(grep -oP 'versionName\s*=\s*"\K[^"]+' app/build.gradle.kts)
           echo "VERSION_NAME=$VERSION_NAME" >> $GITHUB_ENV
 
-      - name: List files for debugging
-        run: ls -R app/build/outputs/apk/release/
-
       - name: List keystore file
         run: ls -l ${GITHUB_WORKSPACE}/keystore.jks
 
@@ -49,6 +46,9 @@ jobs:
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: ./gradlew assembleRelease
+
+      - name: List files for debugging
+        run: ls -R app/build/outputs/apk/release/
 
       - name: Generate Changelog
         run: echo "# Release v${{ env.VERSION_NAME }}" > $GITHUB_WORKSPACE/CHANGELOG.txt
