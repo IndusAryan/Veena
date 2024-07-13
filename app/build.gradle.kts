@@ -21,8 +21,7 @@ android {
 
         signingConfigs {
             create("release") {
-                storeFile = file("/home/runner/work/Veena/Veena/keystore.jks") ?:
-                        file("/home/runner/work/Veena/Veena/app/keystore.jks")
+                storeFile = file("/home/runner/work/Veena/Veena/keystore.jks")
                 storePassword = System.getenv("KEYSTORE_PASSWORD")
                 keyAlias = System.getenv("KEY_ALIAS")
                 keyPassword = System.getenv("KEY_PASSWORD")
