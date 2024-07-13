@@ -25,6 +25,7 @@ jobs:
       - name: Decode keystore
         run: |
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > keystore.jks
+          chmod 600 keystore.jks
 
       - name: Extract version name
         id: extract_version
@@ -43,6 +44,12 @@ jobs:
       - name: List files for debugging
         run: ls -R app/build/outputs/apk/release/
 
+      - name: List keystore file
+        run: ls -l ${GITHUB_WORKSPACE}/keystore.jks
+
+      - name: Debug Gradle properties
+        run: cat gradle.properties
+
       - name: Generate Changelog
         run: echo "# Release v${{ env.VERSION_NAME }}" > $GITHUB_WORKSPACE/CHANGELOG.txt
 
@@ -52,6 +59,8 @@ jobs:
         with:
           files: app/build/outputs/apk/release/*.apk
           body_path: $GITHUB_WORKSPACE/CHANGELOG.txt
+          generate_release_notes: true
+          prerelease: false
           tag_name: v${{ env.VERSION_NAME }}
           name: Release v${{ env.VERSION_NAME }}
         env:
