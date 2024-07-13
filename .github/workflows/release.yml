@@ -24,7 +24,7 @@ jobs:
 
       - name: Decode keystore
         run: |
-          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > keystore.jks
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > $GITHUB_WORKSPACE/keystore.jks
           chmod 600 keystore.jks
 
       - name: Extract version name
@@ -32,14 +32,6 @@ jobs:
         run: |
           VERSION_NAME=$(grep -oP 'versionName\s*=\s*"\K[^"]+' app/build.gradle.kts)
           echo "VERSION_NAME=$VERSION_NAME" >> $GITHUB_ENV
-
-      - name: Build with Gradle
-        env:
-          KEYSTORE_PATH: ${{ github.workspace }}/keystore.jks
-          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-        run: ./gradlew assembleRelease
 
       - name: List files for debugging
         run: ls -R app/build/outputs/apk/release/
@@ -49,6 +41,14 @@ jobs:
 
       - name: Debug Gradle properties
         run: cat gradle.properties
+
+      - name: Build with Gradle
+        env:
+          KEYSTORE_PATH: $GITHUB_WORKSPACE/keystore.jks
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: ./gradlew assembleRelease
 
       - name: Generate Changelog
         run: echo "# Release v${{ env.VERSION_NAME }}" > $GITHUB_WORKSPACE/CHANGELOG.txt
