@@ -1,3 +1,5 @@
+import org.gradle.internal.impldep.org.eclipse.jgit.lib.InflaterCache.release
+
 plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.jetbrainsKotlinAndroid)
@@ -21,13 +23,21 @@ android {
 
     buildTypes {
         release {
-
             isMinifyEnabled = false
             isShrinkResources = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+        }
+    }
+
+    signingConfigs {
+        create("release") {
+            storeFile = file("keystore.jks")
+            storePassword = System.getenv("KEYSTORE_PASSWORD")
+            keyAlias = System.getenv("KEY_ALIAS")
+            keyPassword = System.getenv("KEY_PASSWORD")
         }
     }
 
@@ -45,6 +55,7 @@ android {
         val jdk = JavaVersion.VERSION_17
         sourceCompatibility = jdk
         targetCompatibility = jdk
+        isCoreLibraryDesugaringEnabled = true
     }
 
     kotlinOptions {
@@ -55,6 +66,8 @@ android {
         viewBinding = true
     }
 }
+
+
 
 dependencies {
     // Networking
@@ -67,7 +80,11 @@ dependencies {
     implementation(libs.androidx.activity)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
-    
+    implementation(libs.androidx.legacy.support.v4)
+    implementation(libs.androidx.fragment.ktx)
+    implementation(libs.androidx.preference.ktx)
+    coreLibraryDesugaring(libs.desugar.jdk.libs)
+
     // Design
     implementation(libs.material)
     implementation(libs.shimmer)
@@ -81,10 +98,19 @@ dependencies {
     implementation(libs.androidx.media3.session)
     implementation(libs.androidx.media3.common)
     implementation(libs.androidx.media)
+    implementation(libs.nicehttp)
+    implementation(libs.ktor.client.core)
+    implementation(libs.ktor.client.cio)
+    implementation(libs.ytmkt.android)
 
+    implementation(libs.kotlinx.coroutines.core)
+    implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.androidx.datastore.preferences)
+    // newpipe for yt
+    implementation(libs.converter.scalars)
+    implementation(libs.newpipeextractor)
     // Image
     implementation(libs.coil)
-    implementation(libs.quickie.unbundled) // qr scan
 
     // Navigation
     implementation(libs.androidx.lifecycle.livedata.ktx)

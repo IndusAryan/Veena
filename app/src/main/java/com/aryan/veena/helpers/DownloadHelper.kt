@@ -36,7 +36,7 @@ object DownloadHelper {
                     val inputStream = connection.inputStream
                     //val fileLength = connection.contentLength
                     val values = ContentValues().apply {
-                        put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
+                        put(MediaStore.Audio.Media.DISPLAY_NAME, fileName)
                         put(MediaStore.MediaColumns.ARTIST, artistName)
                         put(MediaStore.MediaColumns.MIME_TYPE, "audio/mpeg")
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {

@@ -1,4 +1,124 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Base Light Theme (Pink) -->
+    <style name="BaseTheme" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="alertDialogTheme">@style/AlertDialogTheme</item>
+        <item name="android:navigationBarColor">?attr/colorSurfaceContainer</item>
+        <!-- VERY FUCKY WAY OF HANDLING NAV BUTTON TINT -->
+        <item name="android:windowLightNavigationBar">true</item>
+
+        <item name="android:textColor">?attr/colorSecondary</item>
+
+        <item name="colorPrimary">@color/md_primary_pink</item>
+        <item name="colorOnPrimary">@color/md_onPrimary_pink</item>
+        <item name="colorPrimaryContainer">@color/md_primaryContainer_pink</item>
+        <item name="colorOnPrimaryContainer">@color/md_onPrimaryContainer_pink</item>
+        <item name="colorSecondary">@color/md_secondary_pink</item>
+        <item name="colorOnSecondary">@color/md_onSecondary_pink</item>
+        <item name="colorSecondaryContainer">@color/md_secondaryContainer_pink</item>
+        <item name="colorOnSecondaryContainer">@color/md_onSecondaryContainer_pink</item>
+        <item name="colorTertiary">@color/md_tertiary_pink</item>
+        <item name="colorOnTertiary">@color/md_onTertiary_pink</item>
+        <item name="colorTertiaryContainer">@color/md_tertiaryContainer_pink</item>
+        <item name="colorOnTertiaryContainer">@color/md_onTertiaryContainer_pink</item>
+        <item name="colorError">@color/md_error_pink</item>
+        <item name="colorOnError">@color/md_onError_pink</item>
+        <item name="colorErrorContainer">@color/md_errorContainer_pink</item>
+        <item name="colorOnErrorContainer">@color/md_onErrorContainer_pink</item>
+        <item name="android:colorBackground">@color/md_background_pink</item> <!-- Ensured this is included -->
+        <item name="colorOnBackground">@color/md_background_pink</item>
+        <item name="colorSurface">@color/md_surface_pink</item> <!-- Ensured this is included -->
+        <item name="colorOnSurface">@color/md_onSurface_pink</item>
+        <item name="colorSurfaceVariant">@color/md_surfaceVariant_pink</item> <!-- Ensured this is included -->
+        <item name="colorOnSurfaceVariant">@color/md_onSurfaceVariant_pink</item>
+        <item name="colorOutline">@color/md_outline_pink</item>
+        <item name="colorOutlineVariant">@color/md_outlineVariant_pink</item>
+        <item name="colorSurfaceInverse">@color/md_inverseSurface_pink</item>
+        <item name="colorOnSurfaceInverse">@color/md_inverseOnSurface_pink</item>
+        <item name="colorPrimaryInverse">@color/md_inversePrimary_pink</item>
+        <item name="colorPrimaryFixed">@color/md_primaryFixed_pink</item>
+        <item name="colorOnPrimaryFixed">@color/md_onPrimaryFixed_pink</item>
+        <item name="colorPrimaryFixedDim">@color/md_primaryFixedDim_pink</item>
+        <item name="colorOnPrimaryFixedVariant">@color/md_onPrimaryFixedVariant_pink</item>
+        <item name="colorSecondaryFixed">@color/md_secondaryFixed_pink</item>
+        <item name="colorOnSecondaryFixed">@color/md_onSecondaryFixed_pink</item>
+        <item name="colorSecondaryFixedDim">@color/md_secondaryFixedDim_pink</item>
+        <item name="colorOnSecondaryFixedVariant">@color/md_onSecondaryFixedVariant_pink</item>
+        <item name="colorTertiaryFixed">@color/md_tertiaryFixed_pink</item>
+        <item name="colorOnTertiaryFixed">@color/md_onTertiaryFixed_pink</item>
+        <item name="colorTertiaryFixedDim">@color/md_tertiaryFixedDim_pink</item>
+        <item name="colorOnTertiaryFixedVariant">@color/md_onTertiaryFixedVariant_pink</item>
+        <item name="colorSurfaceDim">@color/md_surfaceDim_pink</item> <!-- Ensured this is included -->
+        <item name="colorSurfaceBright">@color/md_surfaceBright_pink</item>
+        <item name="colorSurfaceContainerLowest">@color/md_surfaceContainerLowest_pink</item>
+        <item name="colorSurfaceContainerLow">@color/md_surfaceContainerLow_pink</item>
+        <item name="colorSurfaceContainer">@color/md_surfaceContainer_pink</item> <!-- Ensured this is included -->
+        <item name="colorSurfaceContainerHigh">@color/md_surfaceContainerHigh_pink</item>
+        <item name="colorSurfaceContainerHighest">@color/md_surfaceContainerHighest_pink</item>
+    </style>
+
+    <!-- Light Yellow Theme -->
+    <style name="YellowTheme" parent="BaseTheme">
+        <item name="colorPrimary">@color/md_primary_yellow</item>
+        <item name="colorOnPrimary">@color/md_onPrimary_yellow</item>
+        <item name="colorPrimaryContainer">@color/md_primaryContainer_yellow</item>
+        <item name="colorOnPrimaryContainer">@color/md_onPrimaryContainer_yellow</item>
+        <item name="colorSecondary">@color/md_secondary_yellow</item>
+        <item name="colorOnSecondary">@color/md_onSecondary_yellow</item>
+        <item name="colorSecondaryContainer">@color/md_secondaryContainer_yellow</item>
+        <item name="colorOnSecondaryContainer">@color/md_onSecondaryContainer_yellow</item>
+        <item name="colorTertiary">@color/md_tertiary_yellow</item>
+        <item name="colorOnTertiary">@color/md_onTertiary_yellow</item>
+        <item name="colorTertiaryContainer">@color/md_tertiaryContainer_yellow</item>
+        <item name="colorOnTertiaryContainer">@color/md_onTertiaryContainer_yellow</item>
+        <item name="android:colorBackground">@color/md_background_yellow</item>
+        <item name="colorOnBackground">@color/md_onBackground_yellow</item>
+        <item name="colorSurface">@color/md_surface_yellow</item>
+        <item name="colorOnSurface">@color/md_onSurface_yellow</item>
+        <item name="colorSurfaceVariant">@color/md_surfaceVariant_yellow</item>
+        <item name="colorOnSurfaceVariant">@color/md_onSurfaceVariant_yellow</item>
+        <item name="colorOutline">@color/md_outline_yellow</item>
+        <item name="colorOutlineVariant">@color/md_outlineVariant_yellow</item>
+
+        <item name="colorPrimaryFixed">@color/md_primaryFixed_yellow</item>
+        <item name="colorOnPrimaryFixed">@color/md_onPrimaryFixed_yellow</item>
+        <item name="colorPrimaryFixedDim">@color/md_primaryFixedDim_yellow</item>
+        <item name="colorOnPrimaryFixedVariant">@color/md_onPrimaryFixedVariant_yellow</item>
+        <item name="colorSecondaryFixed">@color/md_secondaryFixed_yellow</item>
+        <item name="colorOnSecondaryFixed">@color/md_onSecondaryFixed_yellow</item>
+        <item name="colorSecondaryFixedDim">@color/md_secondaryFixedDim_yellow</item>
+        <item name="colorOnSecondaryFixedVariant">@color/md_onSecondaryFixedVariant_yellow</item>
+        <item name="colorTertiaryFixed">@color/md_tertiaryFixed_yellow</item>
+        <item name="colorOnTertiaryFixed">@color/md_onTertiaryFixed_yellow</item>
+        <item name="colorTertiaryFixedDim">@color/md_tertiaryFixedDim_yellow</item>
+        <item name="colorOnTertiaryFixedVariant">@color/md_onTertiaryFixedVariant_yellow</item>
+        <item name="colorSurfaceDim">@color/md_surfaceDim_yellow</item>
+        <item name="colorSurfaceBright">@color/md_surfaceBright_yellow</item>
+        <item name="colorSurfaceContainerLowest">@color/md_surfaceContainerLowest_yellow</item>
+        <item name="colorSurfaceContainerLow">@color/md_surfaceContainerLow_yellow</item>
+        <item name="colorSurfaceContainer">@color/md_surfaceContainer_yellow</item>
+        <item name="colorSurfaceContainerHigh">@color/md_surfaceContainerHigh_yellow</item>
+        <item name="colorSurfaceContainerHighest">@color/md_surfaceContainerHighest_yellow</item>
+    </style>
+
+    <style name="SettingsItem">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">50sp</item>
+        <item name="android:gravity">center_vertical</item>
+        <item name="android:paddingStart">20dp</item>
+        <item name="android:paddingEnd">20dp</item>
+        <item name="android:selectAllOnFocus">true</item>
+        <item name="android:foreground">?attr/selectableItemBackgroundBorderless</item>
+        <item name="android:textAppearance">?android:attr/textAppearanceLarge</item>
+<!--        <item name="android:background">@drawable/outline_drawable_less</item>-->
+<!--        <item name="android:textColor">?attr/textColor</item>-->
+<!--        <item name="drawableEndCompat">@drawable/ic_baseline_keyboard_arrow_right_24</item>-->
+    </style>
+
+    <style name="AlertDialogTheme" parent="ThemeOverlay.Material3.MaterialAlertDialog">
+            <item name="android:windowBackground">@drawable/round_dialog_bg</item>
+
+            <item name="textAllCaps">false</item>
+        </style>
 
 </resources>

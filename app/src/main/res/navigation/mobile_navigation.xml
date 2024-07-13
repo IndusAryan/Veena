@@ -17,9 +17,18 @@
         android:label="@string/title_dashboard"
         tools:layout="@layout/fragment_downloads" />
 
-    <!--<fragment
-        android:id="@+id/navigation_notifications"
-        android:name="com.aryan.veena.ui.notifications.NotificationsFragment"
+    <fragment
+        android:id="@+id/navigation_settings"
+        android:name="com.aryan.veena.ui.fragments.SettingsFragment"
         android:label="@string/title_notifications"
-        tools:layout="@layout/fragment_notifications" />-->
+        tools:layout="@layout/fragment_appearance" />
+    <action
+        android:id="@+id/action_navigation_global_to_navigation_settings_appearance"
+        app:destination="@id/navigation_appearance" />
+
+    <fragment
+        android:id="@+id/navigation_appearance"
+        android:name="com.aryan.veena.ui.settings.AppearanceSettings"
+        android:label="@string/title_notifications"
+        tools:layout="@layout/fragment_appearance" />
 </navigation>

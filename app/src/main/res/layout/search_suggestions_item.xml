@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="15dp"
+    android:orientation="horizontal"
+    android:background="?attr/selectableItemBackgroundBorderless"
+    android:padding="10dp">
+
+    <TextView
+        android:id="@+id/suggestionName"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textSize="15sp"
+        android:textColor="?attr/colorControlNormal"
+        android:textStyle="normal"
+        tools:text="ncs music" />
+
+    <ImageView
+        android:id="@+id/inputHint"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:layout_gravity="end"
+        android:src="@drawable/ic_arrow_query" />
+
+</FrameLayout>

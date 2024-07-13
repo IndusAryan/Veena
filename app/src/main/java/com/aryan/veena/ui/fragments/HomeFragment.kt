@@ -1,150 +1,189 @@
 package com.aryan.veena.ui.fragments
 
-import android.app.Activity
-import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.core.content.ContextCompat
+import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.view.isGone
 import androidx.core.view.isVisible
+import androidx.core.widget.doOnTextChanged
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.activityViewModels
+import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
 import com.aryan.veena.R
 import com.aryan.veena.databinding.FragmentHomeBinding
-import com.aryan.veena.ui.activities.QRActivity
+import com.aryan.veena.helpers.ThemeHelper.setAppName
+import com.aryan.veena.repository.Provider
+import com.aryan.veena.ui.adapters.SearchSuggestionsAdapter
+import com.aryan.veena.ui.adapters.SearchSuggestionsAdapter.OnSuggestionClickListener
 import com.aryan.veena.ui.adapters.SongsAdapter
+import com.aryan.veena.utils.CoroutineUtils.ioScope
 import com.aryan.veena.utils.ToastUtil.showToast
 import com.aryan.veena.viewmodels.HomeViewModel
 import com.aryan.veena.viewmodels.HomeViewModel.Resource
-import com.aryan.veena.viewmodels.SharedViewModel
+import org.schabi.newpipe.extractor.ServiceList.YouTube
 
-class HomeFragment : Fragment() {
+class HomeFragment : Fragment(), OnSuggestionClickListener {
 
-    private var _binding: FragmentHomeBinding? = null
-    private val viewModel: HomeViewModel by activityViewModels()
-
-    // This property is only valid between onCreateView and
-    // onDestroyView.
-    private val binding get() = _binding!!
-    private val songsRecyclerView: RecyclerView? = null
-    private var songsAdapter : SongsAdapter? = null
-    private val sharedViewModel: SharedViewModel by activityViewModels()
-
-    private val qrActivityResultLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
-            val scannedText = result.data?.getStringExtra("SCANNED_TEXT")
-            scannedText?.let {
-                sharedViewModel.setScannedText(it)
-            }
-        }
-    }
+    private var _binding : FragmentHomeBinding? = null
+    private var homeViewModel : HomeViewModel? = null
+    private val binding get() = _binding
+    private val songsAdapter  by lazy { SongsAdapter(emptyList()) }
+    private val searchSuggestionsAdapter by lazy { SearchSuggestionsAdapter(emptyList(), this) }
 
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View {
-        //val homeViewModel = ViewModelProvider(this)[HomeViewModel::class.java]
-
-        songsRecyclerView?.layoutManager = LinearLayoutManager(context)
-
+    ): CoordinatorLayout? {
+        homeViewModel = ViewModelProvider(this)[HomeViewModel::class.java]
         _binding = FragmentHomeBinding.inflate(inflater, container, false)
-        val root: View = binding.root
 
-        setupRecyclerView()
-        observeSharedViewModel()
-        observeHomeViewModel()
-
-        binding.cameraButton.setOnClickListener {
-            val intent = Intent(context, QRActivity::class.java)
-            qrActivityResultLauncher.launch(intent)
-        }
-
-        return root
+        return binding?.root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        binding.toolbar.setTitleTextColor(
-            ContextCompat.getColor(
-                context ?: return ,
-                R.color.grayTextColor
-            )
-        )
+        setupChipGroup()
+        observeHomeViewModel()
+        setupRecyclerView()
+        binding?.toolbar?.title = setAppName(context ?: return)
 
-        val searchView = binding.searchView
+        binding?.searchSuggestions?.apply {
+            adapter = searchSuggestionsAdapter
+            layoutManager = LinearLayoutManager(context)
+        }
 
-        searchView.addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
-            override fun onViewAttachedToWindow(p0: View) {
-                // handle when SearchView is attached
+        binding?.searchView?.editText?.apply {
+            doOnTextChanged { _, _, _, _ ->
+                if (text.length >= 3) {
+                    try {
+                        ioScope {
+                            val suggestionsYT =
+                                YouTube?.suggestionExtractor?.suggestionList(text?.toString())
+                            Log.i("SUGGESTIONS", "$suggestionsYT")
+                            activity?.runOnUiThread {
+                                searchSuggestionsAdapter.updateSuggestions(suggestionsYT ?: emptyList())
+                            }
+                        }
+                        //addAll(SoundCloud.suggestionExtractor.suggestionList(editText.text.toString()))
+                    } catch (t: Throwable) {
+                        t.printStackTrace()
+                    }
+                }
             }
 
-            override fun onViewDetachedFromWindow(p0: View) {
-                // handle when SearchView is detached
-            }
-        })
+            setOnEditorActionListener { textView, _, _ ->
+                val query = textView.text.toString()
+                Log.i("SearchView", "${homeViewModel?.searchQuery?.value}")
 
-        searchView.editText.setOnEditorActionListener { textView, _, _ ->
-            val query = textView.text.toString()
-            Log.i("SearchView", query)
-            viewModel.searchSaavn(query)
-            searchView.hide()
-            //observeViewModel()
-            true
+                fun search() {
+                    // Only call search if the new query is different from current text
+                    if (query != binding?.searchBar?.text.toString() && query.length >= 3) {
+                        //showToast(requireContext(), )
+                        homeViewModel?.search(query)
+                        binding?.searchBar?.setText(query)
+                        binding?.searchView?.hide()// Update search bar text
+                    }
+                }
+                search()
+                true
+            }
+        }
+    }
+
+    override fun onSuggestionClick(suggestion: String) {
+        homeViewModel?.search(suggestion)
+        binding?.searchBar?.setText(suggestion)
+        binding?.searchView?.hide()
+    }
+
+    override fun onDrawableClick(suggestion: String) {
+       // homeViewModel?.searchQuery? = suggestion
+    }
+
+    private fun setupChipGroup() {
+        binding?.providerChips?.setOnCheckedStateChangeListener { _, checkedIds ->
+            if (checkedIds.isNotEmpty()) {
+                val provider = when (checkedIds[0]) {
+                    R.id.jiosaavn -> Provider.SAAVN
+                    R.id.ytmusic -> Provider.YTMUSIC
+                    R.id.newpipe -> Provider.NEWPIPE
+                    R.id.piped -> Provider.PIPED
+                    R.id.wapking -> Provider.WAPKING
+                    else -> null
+                }
+                provider?.let { homeViewModel?.selectProvider(it) }
+            }
         }
     }
 
     private fun setupRecyclerView() {
-        songsAdapter = SongsAdapter(emptyList())
-        binding.songsRecyclerView.apply {
+        binding?.songsRecyclerView?.apply {
             layoutManager = LinearLayoutManager(context)
             adapter = songsAdapter
         }
     }
 
-    private fun observeSharedViewModel() {
-        sharedViewModel.scannedText.observe(viewLifecycleOwner) { scannedText ->
-            if (scannedText.isNotEmpty()) {
-                //binding.searchView.editText.setText(scannedText)
-                viewModel.searchSaavn(scannedText)
+    private fun observeHomeViewModel() {
+        homeViewModel?.apply {
+            selectedProvider.observe(viewLifecycleOwner) { provider ->
+                if (providerResults.containsKey(provider)) {
+                    providerResults[provider]?.let { _searchedSong.postValue(it) }
+                } else {
+                    ioScope {
+                        if (!searchQuery.value.isNullOrEmpty()) {
+                            search(searchQuery.value.toString())
+                        }
+                    }
+                }
+            }
+
+            status.observe(viewLifecycleOwner) { resource ->
+                when (resource) {
+                    is Resource.Loading -> {
+                        shimmer(showShimmer = true, showRecyclerView = false)
+                    }
+
+                    is Resource.Success -> {
+                        shimmer(showShimmer = false, showRecyclerView = true)
+                    }
+
+                    is Resource.Error -> {
+                        shimmer(showShimmer = false, showRecyclerView = false)
+                        showToast(
+                            context ?: return@observe,
+                            resource.message ?: R.string.unknown_error
+                        )
+                    }
+                }
+            }
+
+            searchedSong.observe(viewLifecycleOwner) { songs ->
+                val selectedProvider = homeViewModel?.selectedProvider?.value
+                if (selectedProvider != null && selectedProvider == homeViewModel?.currentProvider) {
+                    Log.d("HomeFragment", "Received searched songs: $songs")
+                     songsAdapter.updateSongs(songs.filterNotNull())
+                }
             }
         }
     }
 
-    private fun observeHomeViewModel() {
-        viewModel.status.observe(viewLifecycleOwner) { resource ->
-            when (resource) {
-                is Resource.Loading -> {
-                    binding.shimmerView.startShimmer()
-                    binding.shimmerView.isVisible = true
-                    binding.songsRecyclerView.isGone = true
-                }
-
-                is Resource.Success -> {
-                    binding.shimmerView.stopShimmer()
-                    binding.shimmerView.isGone = true
-                    binding.songsRecyclerView.isGone = false
-                }
-
-                is Resource.Error -> {
-                    binding.shimmerView.stopShimmer()
-                    binding.shimmerView.isGone = true
-                    binding.songsRecyclerView.isGone = true
-                    showToast(context ?: return@observe, resource.message ?: R.string.unknown_error)
-                }
+    private fun shimmer(showShimmer: Boolean, showRecyclerView: Boolean? = null) {
+        binding?.apply {
+            if (showShimmer) {
+                shimmerView.startShimmer()
+                shimmerView.isVisible = true
+            } else {
+                shimmerView.stopShimmer()
+                shimmerView.isGone = true
             }
-        }
 
-        viewModel.searchedSong.observe(viewLifecycleOwner) { songs ->
-            songs?.let {
-                songsAdapter?.updateSongs(it)
+            showRecyclerView?.let { isVisible ->
+                songsRecyclerView.isGone = !isVisible
             }
         }
     }

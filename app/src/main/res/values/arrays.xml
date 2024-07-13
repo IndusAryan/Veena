@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string-array name="themes">
+        <item>Light</item>
+        <item>Dark</item>
+        <item>System</item>
+
+    </string-array>
+
+    <string-array name="themesValue">
+        <item>light</item>
+        <item>dark</item>
+        <item>system"</item>
+    </string-array>
+
+    <string-array name="accents">
+        <item>Lotus Pink</item>
+        <item>Spring Yellow</item>
+        <item>Monet</item>
+
+    </string-array>
+
+    <string-array name="accentsValue">
+        <item>pink</item>
+        <item>yellow</item>
+        <item>monet</item>
+    </string-array>
+</resources>
