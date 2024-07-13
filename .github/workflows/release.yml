@@ -43,12 +43,6 @@ jobs:
       - name: List files for debugging
         run: ls -R app/build/outputs/apk/release/
 
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: app-release.apk
-          path: app/build/outputs/apk/release/*.apk
-
       - name: Generate Changelog
         run: echo "# Release v${{ env.VERSION_NAME }}" > ${{ github.workspace }}/CHANGELOG.txt
 
@@ -58,5 +52,7 @@ jobs:
         with:
           files: app/build/outputs/apk/release/*.apk
           body_path: ${{ github.workspace }}/CHANGELOG.txt
+          tag_name: v${{ env.VERSION_NAME }}
+          name: Release v${{ env.VERSION_NAME }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
