@@ -27,6 +27,11 @@ jobs:
             ~/.gradle/wrapper
           key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*') }}
 
+      - name: Debug Base64 String
+        run: |
+          echo "${{ secrets.SIGNING_KEY_STORE_BASE64 }}"
+          echo "${{ secrets.SIGNING_KEY_STORE_BASE64 }}"
+
       - name: Decode Keystore
         run: |
           echo "${{ secrets.SIGNING_KEY_STORE_BASE64 }}" | base64 --decode > "${{ secrets.SIGNING_KEY_STORE_PATH }}"
