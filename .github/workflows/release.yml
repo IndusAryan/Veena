@@ -27,12 +27,10 @@ jobs:
             ~/.gradle/wrapper
           key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*') }}
 
-      - name: List keystore file
-        run: ls -l ${GITHUB_WORKSPACE}/keystore.jks
-
       - name: Decode Keystore
         run: |
           echo "${{ secrets.SIGNING_KEY_STORE_BASE64 }}" | base64 --decode > "${{ secrets.SIGNING_KEY_STORE_PATH }}"
+          ls -l ${{ secrets.SIGNING_KEY_STORE_PATH }}
 
       - name: Build Release apk
         env:
