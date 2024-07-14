@@ -1,19 +1,18 @@
-name: Android Release
-
 on:
   push:
-    branches: [master]
+    branches: master
+    tags:
+      - v*
 
-jobs:
-  build:
+    release_build:
     runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v2.6.0
 
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
+      - name: Setup JAVA 17
+        uses: actions/setup-java@v3
         with:
           distribution: 'adopt'
           java-version: 17
@@ -21,47 +20,49 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Decode keystore
-        run: |
-          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > $GITHUB_WORKSPACE/keystore.jks
-          chmod 600 keystore.jks
-          ls -l ${GITHUB_WORKSPACE}/keystore.jks
+      - name: Cache Gradle and wrapper
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*') }}
 
-      - name: Extract version name
-        id: extract_version
+      - name: Decode Keystore
+        env:
+          ENCODED_STRING: ${{ secrets.SIGNING_KEY_STORE_BASE64 }}
+          SIGNING_KEY_STORE_PATH: ${{ secrets.SIGNING_KEY_STORE_PATH }}
+
         run: |
-          VERSION_NAME=$(grep -oP 'versionName\s*=\s*"\K[^"]+' app/build.gradle.kts)
-          echo "VERSION_NAME=$VERSION_NAME" >> $GITHUB_ENV
+          echo $ENCODED_STRING > keystore-b64.txt
+          base64 -d keystore-b64.txt > $SIGNING_KEY_STORE_PATH
 
       - name: List keystore file
         run: ls -l ${GITHUB_WORKSPACE}/keystore.jks
 
-      - name: Debug Gradle properties
-        run: cat gradle.properties
-
-      - name: Build with Gradle
+      - name: Build Release apk
         env:
-          KEYSTORE_PATH: $GITHUB_WORKSPACE/keystore.jks
-          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          SIGNING_KEY_STORE_PATH: ${{ secrets.SIGNING_KEY_STORE_PATH }}
+          SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
+          SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
+          SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
         run: ./gradlew assembleRelease
 
       - name: List files for debugging
         run: ls -R app/build/outputs/apk/release/
 
-      - name: Generate Changelog
-        run: echo "# Release v${{ env.VERSION_NAME }}" > $GITHUB_WORKSPACE/CHANGELOG.txt
-
-      - name: Release
-        uses: softprops/action-gh-release@v2
-        if: github.ref == 'refs/heads/master'
+      - name: Upload Release Build to Artifacts
+        uses: actions/upload-artifact@v3
         with:
-          files: app/build/outputs/apk/release/*.apk
-          body_path: $GITHUB_WORKSPACE/CHANGELOG.txt
+          name: release-artifacts
+          paths: |
+            app/build/outputs/apk/release/
+
+      - name: Create Github Release
+        uses: softprops/action-gh-release@v1
+        with:
           generate_release_notes: true
           prerelease: false
-          tag_name: v${{ env.VERSION_NAME }}
-          name: Release v${{ env.VERSION_NAME }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          tags:
+          files: |
+            app/build/outputs/apk/release/*.apk
