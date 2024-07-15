@@ -69,4 +69,4 @@ jobs:
           prerelease: false
           tag_name: ${{ steps.create_tag.outputs.TAG_NAME }}
           files: |
-            app/build/outputs/apk/release/*.apk
+            app/build/outputs/apk/release/app-universal-release.apk

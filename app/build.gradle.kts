@@ -49,10 +49,13 @@ android {
         abi {
             isEnable = true
             reset()
-            //noinspection ChromeOsAbiSupport
-            include("arm64-v8a")
+            include("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
             isUniversalApk = true
         }
+    }
+
+    packaging {
+        jniLibs.excludes.add("lib/armeabi-v7a/*_neon.so")
     }
 
     compileOptions {
