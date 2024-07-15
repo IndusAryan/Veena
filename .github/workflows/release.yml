@@ -25,7 +25,7 @@ jobs:
 
       - name: Decode Keystore
         run: |
-          chmod 600
+          chmod 600 /tmp/keystore.jks
           echo "${{ secrets.SIGNING_KEY_STORE_BASE64 }}" | base64 --decode > /tmp/keystore.jks
           ls -l /tmp/keystore.jks
 
