@@ -23,9 +23,6 @@ jobs:
         run: |
           echo "${{ secrets.SIGNING_KEY_STORE_BASE64 }}"
 
-      - name: Create /tmp directory
-        run: mkdir -p /tmp
-
       - name: Decode Keystore
         run: |
           echo "${{ secrets.SIGNING_KEY_STORE_BASE64 }}" | base64 --decode > $HOME/keystore.jks
@@ -34,7 +31,7 @@ jobs:
 
       - name: Build Release apk
         env:
-          SIGNING_KEY_STORE_PATH: $HOME/keystore.jks
+          SIGNING_KEY_STORE_PATH: /home/runner/keystore.jks
           SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
           SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
           SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
