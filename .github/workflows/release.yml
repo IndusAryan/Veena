@@ -47,6 +47,14 @@ jobs:
           path: |
             app/build/outputs/apk/release/
 
+      - name: Create a tag
+        id: create_tag
+        run: |
+          TAG_NAME=$(git rev-parse --short HEAD)
+          echo "::set-output name=TAG_NAME::$TAG_NAME"
+          git tag $TAG_NAME
+          git push origin $TAG_NAME
+
       - name: Create Github Release
         uses: softprops/action-gh-release@v2
         with:
