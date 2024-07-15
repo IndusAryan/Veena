@@ -19,14 +19,6 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Cache Gradle and wrapper
-        uses: actions/cache@v2
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*') }}
-
       - name: Debug Base64 String
         run: |
           echo "${{ secrets.SIGNING_KEY_STORE_BASE64 }}"
@@ -34,16 +26,19 @@ jobs:
       - name: Decode Keystore
         run: |
           chmod 600
-          echo "${{ secrets.SIGNING_KEY_STORE_BASE64 }}" | base64 --decode > "${{ secrets.SIGNING_KEY_STORE_PATH }}"
-          ls -l ${{ secrets.SIGNING_KEY_STORE_PATH }}
+          echo "${{ secrets.SIGNING_KEY_STORE_BASE64 }}" | base64 --decode > /tmp/keystore.jks
+          ls -l /tmp/keystore.jks
 
       - name: Build Release apk
         env:
-          SIGNING_KEY_STORE_PATH: ${{ secrets.SIGNING_KEY_STORE_PATH }}
+          SIGNING_KEY_STORE_PATH: /tmp/keystore.jks
           SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
           SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
           SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
         run: ./gradlew assembleRelease
+
+      - name: Capture Gradle Output
+        run: ./gradlew assembleRelease --debug
 
       - name: List files for debugging
         run: ls -R app/build/outputs/apk/release/
