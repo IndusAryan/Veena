@@ -60,5 +60,6 @@ jobs:
         with:
           generate_release_notes: true
           prerelease: false
+          tags: ${{ steps.create_tag.outputs.TAG_NAME }}
           files: |
             app/build/outputs/apk/release/*.apk
