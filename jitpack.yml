@@ -1,0 +1,6 @@
+jdk:
+  - openjdk17
+
+install:
+  - ./gradlew :extension-contract:publishToMavenLocal -x test
+  - ./gradlew :veena
