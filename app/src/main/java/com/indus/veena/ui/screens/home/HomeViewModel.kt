@@ -8,12 +8,11 @@ import androidx.lifecycle.viewModelScope
 import com.indus.veena.database.DataStoreKeys
 import com.indus.veena.database.sqlite.daos.SearchHistoryDao
 import com.indus.veena.database.sqlite.entities.SearchHistoryEntity
-import com.indus.veena.di.AppModule.getSnapshot
+import com.indus.veena.di.DataStoreModule.getSnapshot
 import com.indus.veena.di.DownloadManager
+import com.indus.veena.helpers.ImageModuleCoil.getCachedArtworkBlob
 import com.indus.veena.helpers.VeenaLog
-import com.indus.veena.helpers.getCachedArtworkBlob
 import com.indus.veena.lifecycle.ioScope
-import com.indus.veena.models.Provider
 import com.indus.veena.models.SongModel
 import com.indus.veena.repository.MusicRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -88,14 +87,11 @@ class HomeViewModel @Inject constructor(
     fun downloadSong(song: SongModel, context: Context) {
         viewModelScope.launch {
             downloadManager.prepareDownloadEntry(song)
-            VeenaLog.d(TAG, "STAGE 1: Download Request -> [${song.title}] from [${song.provider}]")
+            VeenaLog.d(TAG, "Download Request -> [${song.title}] from [${song.provider}]")
             try {
-                VeenaLog.d(TAG, "STAGE 2: Fetching full metadata for ID: ${song.id}")
-                // 1. Fetch the specific streamable URLs for this song/provider
+                VeenaLog.d(TAG, "Fetching full metadata for ID: ${song.id}")
                 val detailedSong = repository.getSongDetails(song.id, song.provider)
                 val urls = detailedSong?.streamableUrls
-
-                // 2. Get user's Download Quality preference
                 val qualityName = dataStore.getSnapshot(
                     DataStoreKeys.DOWNLOAD_QUALITY_KEY,
                     DataStoreKeys.AudioQuality.HIGH.name
@@ -105,10 +101,7 @@ class HomeViewModel @Inject constructor(
                 } catch(e: Exception) {
                     DataStoreKeys.AudioQuality.HIGH
                 }
-
-                VeenaLog.d(TAG, "STAGE 3: Selecting Download Stream (User Pref: $quality)")
-
-                // 3. Select Stream based on preference
+                VeenaLog.d(TAG, "Selecting Download Stream (User Pref: $quality)")
                 val streamUrl = if (urls != null) {
                     when (quality) {
                         DataStoreKeys.AudioQuality.HIGH -> urls["320kbps"] ?: urls["256kbps"] ?: urls["128kbps"] ?: urls.values.firstOrNull()
@@ -120,7 +113,7 @@ class HomeViewModel @Inject constructor(
                 // 4. Start Download
                 if (streamUrl != null) {
                     val cachedBlob = context.getCachedArtworkBlob(song.thumbnail)
-                    VeenaLog.d(TAG, "STAGE 4: Passing URI to DownloadManager -> $streamUrl")
+                    VeenaLog.d(TAG, "Passing URI to DownloadManager -> $streamUrl")
                     val mergedSong = song.copy(
                         title = detailedSong?.title?.takeIf { it.isNotBlank() } ?: song.title,
                         artist = detailedSong?.artist?.takeIf { it.isNotBlank() } ?: song.artist,
@@ -134,17 +127,16 @@ class HomeViewModel @Inject constructor(
                         song = mergedSong,
                         streamUrl = streamUrl,
                         artworkData = cachedBlob, // if cached already
-                        customHeaders = if (song.provider == Provider.YTMusic.name || song.provider == Provider.NEWPIPE.name)
-                            mapOf("Range" to "bytes=0-") else emptyMap()
+                        customHeaders = /*mapOf("Range" to "bytes=0-") */ emptyMap()
                     )
-                    VeenaLog.d(TAG, "STAGE 5: Download Enqueued Successfully.")
+                    VeenaLog.d(TAG, "Download Enqueued Successfully.")
                 } else {
                     VeenaLog.e(TAG, "No streamable URL found for download: ${song.title}")
-                    VeenaLog.e(TAG, "ERROR @ STAGE 4: Download URL Selection failed. Result was null.")
+                    VeenaLog.e(TAG, "ERROR: Download URL Selection failed. Result was null.")
                 }
             } catch (e: Exception) {
                 VeenaLog.e(TAG, "Failed to prepare download", e)
-                VeenaLog.e(TAG, "CRITICAL ERROR @ STAGE 2/3: Exception caught while preparing download", e)
+                VeenaLog.e(TAG, "CRITICAL ERROR: Exception caught while preparing download", e)
                 downloadManager.removeDownload(song.id)
             }
         }
@@ -187,7 +179,6 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-
     private fun addSearchToHistory(query: String) {
         ioScope {
             searchHistoryDao.insertHistory(SearchHistoryEntity(query = query))
@@ -206,13 +197,6 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    fun onProviderSelected(providerName: String) { // Now accepts String
-        updateContentState { it.copy(selectedProvider = providerName) }
-        val currentState = (_uiState.value as? HomeUiState.Ready)?.uiState ?: return
-        if (currentState.searchQuery.isNotBlank()) {
-            performSearch(currentState.searchQuery, providerName)
-        }
-    }
     fun onClearSearch() {
         searchJob?.cancel()
         updateContentState {
@@ -234,8 +218,7 @@ class HomeViewModel @Inject constructor(
                 updateContentState {
                     it.copy(searchResults = results, isLoading = false)
                 }
-            } catch (e: Exception) {
-                // Preserves existing UI results but halts loading and shows error
+            } catch (_: Exception) {
                 updateContentState {
                     it.copy(isLoading = false, errorMessage = "Failed to load results. Please check your connection.")
                 }

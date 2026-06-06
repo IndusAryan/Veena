@@ -1,7 +1,5 @@
 package com.indus.veena.service
 
-import android.R.attr.data
-import android.R.attr.type
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.ContentValues
@@ -31,7 +29,6 @@ import androidx.work.CoroutineWorker
 import androidx.work.ForegroundInfo
 import androidx.work.WorkerParameters
 import com.indus.veena.R
-import com.indus.veena.contract.ExtSong
 import com.indus.veena.database.sqlite.daos.DownloadDao
 import com.indus.veena.database.sqlite.entities.DownloadEntity
 import com.indus.veena.database.sqlite.entities.DownloadState
@@ -40,11 +37,6 @@ import com.kyant.taglib.Picture
 import com.kyant.taglib.TagLib
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
-import io.github.kingg22.vibrion.id3.Id3AudioWriter
-import io.github.kingg22.vibrion.id3.Id3WriterBuilder
-import io.github.kingg22.vibrion.id3.Id3v2v3TagFrame
-import io.github.kingg22.vibrion.id3.model.AttachedPicture
-import io.github.kingg22.vibrion.id3.model.AttachedPictureType
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
@@ -52,8 +44,6 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import okio.FileSystem
-import okio.Path.Companion.toPath
 import java.io.File
 import java.io.IOException
 import java.io.RandomAccessFile
@@ -69,7 +59,8 @@ class DownloadWorker @AssistedInject constructor(
     private val downloadDao: DownloadDao
 ) : CoroutineWorker(context, workerParams) {
 
-    private val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+    private val notificationManager =
+        context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
     private val channelId = "download_channel"
     private val notificationId = inputData.getString(KEY_SONG_ID)?.hashCode() ?: 100
     private val TAG = "DownloadWorker"
@@ -80,16 +71,15 @@ class DownloadWorker @AssistedInject constructor(
         createNotificationChannel()
         setForeground(createForegroundInfo(downloadEntity.title, downloadEntity.progress))
 
-        val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+        val downloadsDir =
+            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
         val veenaDir = File(downloadsDir, context.getString(R.string.app_name))
         if (!veenaDir.exists()) veenaDir.mkdirs()
 
-        // --- 1. SANITIZE FILENAME FIRST ---
         // Fixes the empty title and hidden file Scoped Storage crash
         val rawTitle = downloadEntity.title.ifEmpty { "Unknown_Song_$songId" }
         val safeTitle = rawTitle.replace(Regex("[\\\\/:*?\"<>|]"), "_")
 
-        // --- 2. FILE RESUME LOGIC ---
         var file = File(veenaDir, "$safeTitle.m4a")
         if (!file.exists()) {
             val mp3File = File(veenaDir, "$safeTitle.mp3")
@@ -101,7 +91,10 @@ class DownloadWorker @AssistedInject constructor(
         }
 
         val downloadedBytes = if (file.exists()) file.length() else 0L
-        VeenaLog.d(TAG, "STAGE 1: Worker Started for [$safeTitle]. Target: ${file.name}. Resuming from bytes: $downloadedBytes")
+        VeenaLog.d(
+            TAG,
+            "STAGE 1: Worker Started for [$safeTitle]. Target: ${file.name}. Resuming from bytes: $downloadedBytes"
+        )
 
         val requestBuilder = Request.Builder().url(downloadEntity.url)
         if (downloadedBytes > 0) requestBuilder.addHeader("Range", "bytes=$downloadedBytes-")
@@ -124,18 +117,22 @@ class DownloadWorker @AssistedInject constructor(
                 throw IOException("Unexpected code $response")
             }
 
-            // --- 3. PROPER EXTENSION RESOLUTION ---
             val contentType = response.header("Content-Type", "") ?: ""
             val contentLength = response.header("Content-Length", "0")?.toLong() ?: 0L
-            VeenaLog.d(TAG, "STAGE 2: Response Received. MIME: $contentType | Size: ${contentLength / 1024} KB")
+            VeenaLog.d(
+                TAG,
+                "STAGE 2: Response Received. MIME: $contentType | Size: ${contentLength / 1024} KB"
+            )
             val extension = when {
                 contentType.contains("webm") || contentType.contains("opus") -> ".webm"
                 contentType.contains("audio/mpeg") -> ".mp3"
                 else -> ".m4a"
             }
             val finalFile = getUniqueFile(veenaDir, safeTitle, extension)
-            //val finalFile = File(veenaDir, "$safeTitle$extension")
-            VeenaLog.d(TAG, "STAGE 2: Received Network Response. MIME: $contentType, Ext: $extension")
+            VeenaLog.d(
+                TAG,
+                "STAGE 2: Received Network Response. MIME: $contentType, Ext: $extension"
+            )
 
             if (file.exists() && file.absolutePath != finalFile.absolutePath) {
                 file.renameTo(finalFile)
@@ -162,7 +159,13 @@ class DownloadWorker @AssistedInject constructor(
 
                         if (System.currentTimeMillis() - lastUpdate > 500) {
                             val progress = ((currentDownloaded * 100) / totalBytes).toInt()
-                            downloadDao.updateProgress(songId, progress, currentDownloaded, totalBytes, DownloadState.DOWNLOADING)
+                            downloadDao.updateProgress(
+                                songId,
+                                progress,
+                                currentDownloaded,
+                                totalBytes,
+                                DownloadState.DOWNLOADING
+                            )
                             setForeground(createForegroundInfo(downloadEntity.title, progress))
                             lastUpdate = System.currentTimeMillis()
                         }
@@ -170,8 +173,17 @@ class DownloadWorker @AssistedInject constructor(
                 }
             }
 
-            VeenaLog.d(TAG, "STAGE 3: Network download complete. File saved to: ${file.absolutePath}")
-            downloadDao.updateProgress(songId, 100, totalBytes, totalBytes, DownloadState.DOWNLOADING)
+            VeenaLog.d(
+                TAG,
+                "STAGE 3: Network download complete. File saved to: ${file.absolutePath}"
+            )
+            downloadDao.updateProgress(
+                songId,
+                100,
+                totalBytes,
+                totalBytes,
+                DownloadState.DOWNLOADING
+            )
             // Hand off to Transformer and Tagging
             handleConversionAndFinish(songId, file, safeTitle, veenaDir, downloadEntity)
             return@withContext Result.success()
@@ -194,8 +206,13 @@ class DownloadWorker @AssistedInject constructor(
         }
     }
 
-    // Extracted logic to keep doWork clean
-    private suspend fun handleConversionAndFinish(songId: String, currentFile: File, safeTitle: String, dir: File, entity: DownloadEntity) {
+    private suspend fun handleConversionAndFinish(
+        songId: String,
+        currentFile: File,
+        safeTitle: String,
+        dir: File,
+        entity: DownloadEntity
+    ) {
         var finalWorkingFile = currentFile
         val ext = currentFile.extension.lowercase()
 
@@ -208,7 +225,8 @@ class DownloadWorker @AssistedInject constructor(
             // We use a hidden ".tmp" extension so it doesn't show up in music players mid-process
             val tempFile = File(dir, "${safeTitle}.tmp")
             val cleanFinalFile = File(dir, "${safeTitle}.m4a")
-            val success = transcodeWebmToM4a(context, currentFile.absolutePath, tempFile.absolutePath)
+            val success =
+                transcodeWebmToM4a(context, currentFile.absolutePath, tempFile.absolutePath)
             if (success && tempFile.exists()) {
                 VeenaLog.d(TAG, "STAGE 3.6: Standardization Successful. Cleaning up...")
                 // Delete the raw/original file (e.g., the .webm)
@@ -229,22 +247,27 @@ class DownloadWorker @AssistedInject constructor(
     private suspend fun finishDownload(songId: String, path: String, entity: DownloadEntity) {
         val file = File(path)
         if (!file.exists()) return
-        downloadDao.updateProgress(songId, 100, entity.totalBytes, entity.totalBytes, DownloadState.COMPLETED)
-        downloadDao.insertOrUpdate(entity.copy(savedPath = path, state = DownloadState.COMPLETED, progress = 100))
-
-        // Placeholder for ID3 tagging
+        downloadDao.updateProgress(
+            songId,
+            100,
+            entity.totalBytes,
+            entity.totalBytes,
+            DownloadState.COMPLETED
+        )
+        downloadDao.insertOrUpdate(
+            entity.copy(
+                savedPath = path,
+                state = DownloadState.COMPLETED,
+                progress = 100
+            )
+        )
         tagId3Data(path, entity)
-        //applyMetadata(path, entity)
-        // 1. Physical File Fix (Still good for local file explorers)
         val now = System.currentTimeMillis()
         file.setLastModified(now)
-        // 2. Database Fix (For Music Players)
-        // We scan the file first, then update its DB entry
         MediaScannerConnection.scanFile(context, arrayOf(file.absolutePath), null) { _, uri ->
             if (uri != null) {
                 try {
                     val values = ContentValues().apply {
-                        // DATE_MODIFIED is in seconds, not milliseconds
                         put(MediaStore.MediaColumns.DATE_MODIFIED, now / 1000)
                         put(MediaStore.MediaColumns.DATE_ADDED, now / 1000)
                     }
@@ -266,82 +289,19 @@ class DownloadWorker @AssistedInject constructor(
         )
     }
 
-    private suspend fun applyMetadata(filePath: String, entity: DownloadEntity) {
-        withContext(Dispatchers.IO) {
-            try {
-                VeenaLog.d(TAG, "STAGE 4: Starting vibrion-id3 Tagging for [${entity.title}]")
-                val file = File(filePath)
-                if (!file.exists()) {
-                    VeenaLog.e(TAG, "STAGE 4 ERROR: File does not exist at $filePath")
-                    return@withContext
-                }
-
-                // --- 1. SMART ARTWORK RESOLUTION ---
-                var pictureData: ByteArray? = entity.artworkData
-                if (pictureData == null && entity.artworkUrl.isNotEmpty()) {
-                    VeenaLog.d(TAG, "STAGE 4.1: No Blob found. Fetching artwork from URL...")
-                    val imgRequest = Request.Builder().url(entity.artworkUrl).build()
-                    val imgResponse = okHttpClient.newCall(imgRequest).execute()
-                    if (imgResponse.isSuccessful) {
-                        pictureData = imgResponse.body?.bytes()
-                        VeenaLog.d(TAG, "STAGE 4.2: Artwork fetched successfully from network.")
-                    }
-                }
-
-                // --- 2. GENERATE ID3 TAG BYTES ---
-                VeenaLog.d(TAG, "STAGE 4.3: Generating ID3 Tag Bytes...")
-                val tagBytes: ByteArray = Id3WriterBuilder.id3Writer {
-                    // DSL based on the library documentation
-                    title = entity.title
-
-                    if (entity.artist.isNotBlank()) artist(entity.artist)
-                    if (entity.album.isNotBlank()) album = entity.album
-                    if (entity.year.isNotBlank()) {
-                        entity.year.toIntOrNull()?.let { year = it }
-                    }
-
-                    // Handle Picture (Cover)
-                    pictureData?.let { dataBytes ->
-                        picture {
-                            type = AttachedPictureType.CoverFront
-                            data = dataBytes
-                        }
-                    }
-                }.toByteArray()
-
-                // --- 3. READ RAW AUDIO & STRIP EXISTING TAGS ---
-                VeenaLog.d(TAG, "STAGE 4.4: Reading audio and stripping old tags...")
-                // Note: file.readBytes() loads the whole file into RAM.
-                // This is required by vibrion-id3's `removeTag` implementation.
-                val rawAudioBytes = file.readBytes()
-                val cleanAudio = Id3AudioWriter.removeTag(rawAudioBytes)
-
-                // --- 4. OVERWRITE FILE: [NEW TAG] + [CLEAN AUDIO] ---
-                VeenaLog.d(TAG, "STAGE 4.5: Writing new tagged file...")
-                file.outputStream().use { fos ->
-                    fos.write(tagBytes)
-                    fos.write(cleanAudio)
-                }
-
-                VeenaLog.d(TAG, "STAGE 5: vibrion-id3 Tagging complete! File is ready.")
-
-            } catch (e: Exception) {
-                VeenaLog.e(TAG, "ERROR @ STAGE 4: vibrion-id3 Tagging process failed", e)
-            }
-        }
-    }
-
     private suspend fun tagId3Data(filePath: String, entity: DownloadEntity) {
         withContext(Dispatchers.IO) {
             try {
                 VeenaLog.d(TAG, "STAGE 4: Starting ID3 Tagging for [${entity.title}]")
                 val file = File(filePath)
-                // --- 1. SMART ARTWORK RESOLUTION ---
-                var pictureData: ByteArray? = entity.artworkData // Check DB Blob first!
+                var pictureData: ByteArray? = entity.artworkData
                 var mimeType = "image/jpeg"
 
                 if (pictureData != null) {
-                    VeenaLog.d(TAG, "STAGE 4.1: Using cached Artwork Blob from DB. Skipping network call.")
+                    VeenaLog.d(
+                        TAG,
+                        "STAGE 4.1: Using cached Artwork Blob from DB. Skipping network call."
+                    )
                 } else if (entity.artworkUrl.isNotEmpty()) {
                     VeenaLog.d(TAG, "STAGE 4.1: No Blob found. Fetching artwork from URL...")
                     val imgRequest = Request.Builder().url(entity.artworkUrl).build()
@@ -353,7 +313,6 @@ class DownloadWorker @AssistedInject constructor(
                     }
                 }
 
-                // --- 2. TAG INJECTION ---
                 ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_WRITE).use { pfd ->
                     val fdForMeta = pfd.dup().detachFd()
                     val metadata = TagLib.getMetadata(fdForMeta, readPictures = true)
@@ -361,17 +320,18 @@ class DownloadWorker @AssistedInject constructor(
                     if (metadata != null) {
                         VeenaLog.d(TAG, "STAGE 4.3: Injecting Text Tags...")
                         val newProps = metadata.propertyMap.apply {
-                            VeenaLog.d(TAG, "TAG DATA PREVIEW: " +
-                                    "Title: '${entity.title}' | " +
-                                    "Artist: '${entity.artist}' | " +
-                                    "Album: '${entity.album}' | " +
-                                    "Date/Year: '${entity.year}' | " +
-                                    "Genre: '${entity.genre}' | " +
-                                    "Album artist (band): '${entity.albumArtist}' | " +
-                                    "Composer: '${entity.composer}' | " +
-                                    "Genre: '${entity.genre}' | " +
-                                    "Lyricist: '${entity.lyricist}' | " +
-                                    "Comment: '${entity.comment}'"
+                            VeenaLog.d(
+                                TAG, "TAG DATA PREVIEW: " +
+                                        "Title: '${entity.title}' | " +
+                                        "Artist: '${entity.artist}' | " +
+                                        "Album: '${entity.album}' | " +
+                                        "Date/Year: '${entity.year}' | " +
+                                        "Genre: '${entity.genre}' | " +
+                                        "Album artist (band): '${entity.albumArtist}' | " +
+                                        "Composer: '${entity.composer}' | " +
+                                        "Genre: '${entity.genre}' | " +
+                                        "Lyricist: '${entity.lyricist}' | " +
+                                        "Comment: '${entity.comment}'"
                             )
                             if (entity.title.isNotBlank()) this["TITLE"] = arrayOf(entity.title)
                             if (entity.artist.isNotBlank()) this["ARTIST"] = arrayOf(entity.artist)
@@ -380,18 +340,22 @@ class DownloadWorker @AssistedInject constructor(
                                 this["ALBUMARTIST"] = arrayOf(entity.albumArtist)
                                 this["BAND"] = arrayOf(entity.albumArtist)
                             }
-                            if (entity.composer.isNotBlank()) this["COMPOSER"] = arrayOf(entity.composer)
-                            if (entity.genre.isNotBlank()) this["GENRE"] = arrayOf(entity.genre.replaceFirstChar {
-                                if (it.isLowerCase()) it.titlecase(
-                                    Locale.getDefault()
-                                ) else it.toString()
-                            })
-                            if (entity.lyricist.isNotBlank()) this["LYRICIST"] = arrayOf(entity.lyricist)
+                            if (entity.composer.isNotBlank()) this["COMPOSER"] =
+                                arrayOf(entity.composer)
+                            if (entity.genre.isNotBlank()) this["GENRE"] =
+                                arrayOf(entity.genre.replaceFirstChar {
+                                    if (it.isLowerCase()) it.titlecase(
+                                        Locale.getDefault()
+                                    ) else it.toString()
+                                })
+                            if (entity.lyricist.isNotBlank()) this["LYRICIST"] =
+                                arrayOf(entity.lyricist)
                             if (entity.year.isNotBlank()) {
                                 this["DATE"] = arrayOf(entity.year)
                                 this["YEAR"] = arrayOf(entity.year)
                             }
-                            if (entity.comment.isNotBlank()) this["COMMENT"] = arrayOf(entity.comment)
+                            if (entity.comment.isNotBlank()) this["COMMENT"] =
+                                arrayOf(entity.comment)
                         }
 
                         val fdForProps = pfd.dup().detachFd()
@@ -408,7 +372,10 @@ class DownloadWorker @AssistedInject constructor(
                             val fdForPic = pfd.dup().detachFd()
                             TagLib.savePictures(fdForPic, arrayOf(picture))
                         }
-                        VeenaLog.d(TAG, "STAGE 5: Tagging complete! File is perfectly tagged and ready.")
+                        VeenaLog.d(
+                            TAG,
+                            "STAGE 5: Tagging complete! File is perfectly tagged and ready."
+                        )
                     }
                 }
             } catch (e: Exception) {
@@ -439,10 +406,16 @@ class DownloadWorker @AssistedInject constructor(
     /*
     Itag 140 (AAC ~128 kbps): This is the highest-quality standard AAC stream YouTube provides for most videos.
     Itag 251 (Opus ~160 kbps): This is often the highest-quality overall audio stream YouTube offers.
-    The "Conversion Trap": If your app needs an AAC file but you download the 160 kbps Opus stream and convert it to 128 kbps AAC, the quality will be worse than if you just downloaded the 128 kbps AAC file directly. This is because you are compressing a file that has already been compressed once (re-encoding), which introduces digital artifacts and "generation loss".
+    no conversion: we need AAC file but if we download the 160 kbps Opus stream and convert it to 128 kbps AAC,
+    the quality will be worse than the org 128 kbps AAC file directly due to recompression and re-encoding,
+    which introduces digital artifacts and "generation loss" and a disgrace to your ancestors.
     */
     @OptIn(UnstableApi::class)
-    private suspend fun transcodeWebmToM4a(context: Context, inputPath: String, outputPath: String): Boolean {
+    private suspend fun transcodeWebmToM4a(
+        context: Context,
+        inputPath: String,
+        outputPath: String
+    ): Boolean {
         return withContext(Dispatchers.Main) {
             suspendCancellableCoroutine { continuation ->
                 val transformer = Transformer.Builder(context)
@@ -459,7 +432,12 @@ class DownloadWorker @AssistedInject constructor(
                     override fun onCompleted(composition: Composition, exportResult: ExportResult) {
                         if (continuation.isActive) continuation.resume(true)
                     }
-                    override fun onError(composition: Composition, exportResult: ExportResult, e: ExportException) {
+
+                    override fun onError(
+                        composition: Composition,
+                        exportResult: ExportResult,
+                        e: ExportException
+                    ) {
                         VeenaLog.e("DownloadWorker", "Transformer Error: ${e.message}")
                         if (continuation.isActive) continuation.resume(false)
                     }

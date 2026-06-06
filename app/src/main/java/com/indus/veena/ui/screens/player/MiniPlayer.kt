@@ -61,16 +61,13 @@ fun MiniPlayer(
     onExpand: () -> Unit
 ) {
     val song = state.activeSong ?: return
-
-    // 1. ANIMATE PROGRESS (Ensures smooth movement between ExoPlayer updates)
     val progress by animateFloatAsState(
         targetValue = if (state.duration > 0) currentPosition / state.duration.toFloat() else 0f,
         animationSpec = ProgressIndicatorDefaults.ProgressAnimationSpec,
         label = "mini_progress"
     )
 
-    // 2. DYNAMIC COLOR (Extract from state or use a default)
-    val accentColor = remember(song.thumbnail) { state.dominantColor ?: Color.White } // You can pass dominantColor here too
+    val accentColor = remember(song.thumbnail) { state.dominantColor }
 
     Box(
         modifier = Modifier
@@ -79,10 +76,8 @@ fun MiniPlayer(
             .height(68.dp)
             .clip(RoundedCornerShape(22.dp))
             .clickable { onExpand() }
-            // THE GLASS BASE
             .hazeChild(
                 state = hazeState,
-                //   shape = RoundedCornerShape(20.dp),
                 style = HazeStyle(
                     tint = HazeTint(Color.Black.copy(alpha = 0.45f)),
                     blurRadius = 25.dp
@@ -90,7 +85,6 @@ fun MiniPlayer(
             )
             .border(0.5.dp, Color.White.copy(alpha = 0.15f), RoundedCornerShape(22.dp))
     ) {
-        // 3. THE PROGRESS BEAM (Behind the text)
         Box(
             modifier = Modifier
                 .fillMaxHeight()
@@ -105,12 +99,10 @@ fun MiniPlayer(
                 )
         )
 
-        // 4. THE LEADING GLEAM (The vertical light beam)
         Box(
             modifier = Modifier
                 .fillMaxHeight()
                 .width(1.dp)
-                // Position it at the end of the progress
                 .align(Alignment.CenterStart)
                 .offset(x = (LocalConfiguration.current.screenWidthDp.dp - 32.dp) * progress)
                 .background(
@@ -125,7 +117,6 @@ fun MiniPlayer(
                 .blur(2.dp)
         )
 
-        // 5. THE CONTENT (Thumbnail, Text, Controls)
         Row(
             modifier = Modifier
                 .fillMaxSize()
@@ -162,7 +153,6 @@ fun MiniPlayer(
                 )
             }
 
-            // CONTROLS
             IconButton(onClick = onTogglePlay) {
                 Icon(
                     imageVector = if (state.isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,

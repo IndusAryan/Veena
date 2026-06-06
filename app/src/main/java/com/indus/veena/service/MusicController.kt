@@ -2,8 +2,7 @@ package com.indus.veena.service
 
 import android.content.ComponentName
 import android.content.Context
-import android.net.Uri
-import android.util.Log
+import androidx.annotation.OptIn
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import androidx.media3.common.MediaItem
@@ -11,10 +10,9 @@ import androidx.media3.common.MediaMetadata
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.Timeline
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
-import com.google.common.util.concurrent.ListenableFuture
-import com.google.common.util.concurrent.MoreExecutors
 import com.indus.veena.models.SongModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
@@ -23,19 +21,15 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.suspendCancellableCoroutine
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlin.coroutines.resume
-import kotlin.coroutines.resumeWithException
 
 @Singleton
-class MusicController @Inject constructor(
+class MusicController @OptIn(UnstableApi::class)
+@Inject constructor(
     @ApplicationContext private val context: Context
 ) {
     var mediaController: MediaController? = null
@@ -140,7 +134,7 @@ class MusicController @Inject constructor(
                 mediaController?.let { controller ->
                     controller.setMediaItem(mediaItem)
                     controller.prepare()
-                    controller.play() // Play directly after prepare
+                    controller.play()
 
                     // Force play if the service is in a weird state
                     if (!controller.playWhenReady) {
@@ -158,7 +152,6 @@ class MusicController @Inject constructor(
             if (mediaController!!.isPlaying) mediaController?.pause()
             else mediaController?.play()
         } else {
-            // Optional: Try reconnecting automatically
             CoroutineScope(Dispatchers.IO).launch {
                 if (ensureConnected()) togglePlayPause()
             }

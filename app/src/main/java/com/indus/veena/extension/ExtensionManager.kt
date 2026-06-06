@@ -8,7 +8,7 @@ import com.indus.veena.contract.ExtensionManifest
 import com.indus.veena.contract.ExtensionType
 import com.indus.veena.contract.LoadedExtension
 import com.indus.veena.contract.MusicAddon
-import com.indus.veena.providers.NewPipeLocalPlugin
+import com.indus.veena.di.ExtensionModule.json
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dalvik.system.DexClassLoader
 import kotlinx.coroutines.Dispatchers
@@ -17,7 +17,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.json.Json
 import java.io.File
 import java.util.zip.ZipFile
 import javax.inject.Inject
@@ -31,12 +30,11 @@ class ExtensionManager @Inject constructor(
     private val _extensions = MutableStateFlow<Map<String, LoadedExtension>>(emptyMap())
     val extensions: StateFlow<Map<String, LoadedExtension>> = _extensions.asStateFlow()
 
-    private val json = Json { ignoreUnknownKeys = true; isLenient = true }
-
-    init {
+    // test impl
+    /*init {
         val localManifest = ExtensionManifest(
-            id = "newpipe_internal",
-            name = "NewPipe (Local)",
+            id = "some_internal",
+            name = "some_local",
             version = "1.0.0",
             versionCode = 1,
             apiVersion = 1,
@@ -48,13 +46,13 @@ class ExtensionManager @Inject constructor(
             onLoad(host)
         }
         _extensions.value = mapOf(
-            "newpipe_internal" to LoadedExtension(
+            "some_internal" to LoadedExtension(
                 addon = localAddon,
                 manifest = localManifest,
                 type = ExtensionType.DEX
             )
         )
-    }
+    }*/
 
     fun getById(id: String): LoadedExtension? = _extensions.value[id]
 
@@ -65,10 +63,8 @@ class ExtensionManager @Inject constructor(
                 "veena" -> loadDex(file)
                 else -> throw ExtensionError.ManifestError("Unknown extension type: ${file.extension}")
             }
-
             // Unload existing before replacing
             _extensions.value[loaded.manifest.id]?.addon?.onUnload()
-
             loaded.addon.onLoad(host)
             _extensions.update { it + (loaded.manifest.id to loaded) }
             Log.d(TAG, "Loaded extension: ${loaded.manifest.name} v${loaded.manifest.version}")
@@ -81,7 +77,7 @@ class ExtensionManager @Inject constructor(
         val script = file.readText()
         val manifest = parseJsManifest(script)
         return LoadedExtension(
-            addon = JsMusicExtension(script, manifest, host),
+            addon = JsMusicExtension(script),
             manifest = manifest,
             type = ExtensionType.JS
         )

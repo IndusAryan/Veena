@@ -2,7 +2,7 @@ package com.indus.veena.helpers
 
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
-import com.indus.veena.di.AppModule.setValue
+import com.indus.veena.di.DataStoreModule.setValue
 
 suspend fun <T : Enum<T>> DataStore<Preferences>.saveEnum(key: Preferences.Key<String>, value: T) {
      setValue(key, value.name)

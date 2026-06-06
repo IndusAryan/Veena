@@ -1,13 +1,11 @@
 package com.indus.veena.ui.screens.settings
 
-import android.R.attr.entries
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -65,7 +63,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.indus.veena.BuildConfig
 import com.indus.veena.database.DataStoreKeys
 import com.indus.veena.ui.theme.VeenaAccent
 
@@ -115,7 +112,6 @@ fun SettingsScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(bottom = 120.dp) // room for bottom nav
         ) {
-            // ── APPEARANCE ────────────────────────────────────────────
             SettingsSectionHeader(icon = Icons.Outlined.Palette, title = "Appearance")
 
             SettingsCard {
@@ -173,7 +169,6 @@ fun SettingsScreen(
                         }
                     }
 
-                    // Current accent label
                     Spacer(Modifier.height(10.dp))
                     Text(
                         text = "Current: ${currentAccent.displayName}",
@@ -190,7 +185,6 @@ fun SettingsScreen(
 
             Spacer(Modifier.height(24.dp))
 
-            // ── AUDIO & PLAYBACK ──────────────────────────────────────
             SettingsSectionHeader(icon = Icons.Outlined.HighQuality, title = "Audio & Playback")
 
             SettingsCard {
@@ -218,7 +212,6 @@ fun SettingsScreen(
 
             Spacer(Modifier.height(24.dp))
 
-            // ── GENERAL ───────────────────────────────────────────────
             SettingsSectionHeader(icon = Icons.Outlined.Search, title = "General")
 
             SettingsCard {
@@ -231,8 +224,6 @@ fun SettingsScreen(
             }
         }
     }
-
-    // ── DIALOGS ───────────────────────────────────────────────────────────────
 
     if (showThemeDialog) {
         SettingSelectionDialog(
@@ -290,10 +281,6 @@ fun SettingsScreen(
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Reusable Components
-// ─────────────────────────────────────────────────────────────────────────────
-
 @Composable
 fun SettingsSectionHeader(icon: ImageVector, title: String) {
     Row(
@@ -311,7 +298,6 @@ fun SettingsSectionHeader(icon: ImageVector, title: String) {
     }
 }
 
-/** Rounded card container for grouped settings rows */
 @Composable
 fun SettingsCard(content: @Composable () -> Unit) {
     Surface(

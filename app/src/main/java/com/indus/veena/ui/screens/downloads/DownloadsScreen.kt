@@ -143,10 +143,7 @@ fun DownloadItemCard(
     val progress by animateFloatAsState(targetValue = entity.progress / 100f, label = "progress")
     val mbDownloaded = "%.1f".format(entity.downloadedBytes / (1024f * 1024f))
     val mbTotal = "%.1f".format(entity.totalBytes / (1024f * 1024f))
-    val textColor = MaterialTheme.colorScheme.onSurface
-    val subTextColor = MaterialTheme.colorScheme.onSurfaceVariant
     val containerColor = MaterialTheme.colorScheme.surfaceContainer
-    val iconTint = MaterialTheme.colorScheme.primary
 
     Card(
         modifier = Modifier.fillMaxWidth().height(110.dp),
@@ -165,13 +162,10 @@ fun DownloadItemCard(
             )
             // Overlay to darken the blur so text is readable
             Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.65f)))
-
-            // 2. Content Row
             Row(
                 modifier = Modifier.fillMaxSize().padding(12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Sharp Thumbnail
                 AsyncImage(
                     model = entity.artworkUrl,
                     contentDescription = null,
@@ -180,8 +174,6 @@ fun DownloadItemCard(
                 )
 
                 Spacer(Modifier.width(16.dp))
-
-                // Text Details
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = entity.title,
@@ -196,8 +188,6 @@ fun DownloadItemCard(
                         maxLines = 1, overflow = TextOverflow.Ellipsis
                     )
                     Spacer(Modifier.height(4.dp))
-
-                    // Provider & Format Details Badge
                     Surface(
                         shape = CircleShape,
                         color = MaterialTheme.colorScheme.primaryContainer,
@@ -219,8 +209,6 @@ fun DownloadItemCard(
                         )
                     }
                 }
-
-                // Controls
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
@@ -243,14 +231,12 @@ fun DownloadItemCard(
                             }
                         }
                     }
-                    // Cancel/Trash Button
                     IconButton(onClick = onCancel, modifier = Modifier.size(30.dp)) {
                         Icon(Icons.Default.Delete, "Cancel", tint = Color.Red, modifier = Modifier.size(18.dp))
                     }
                 }
             }
 
-            // 3. Bottom Edge Linear Progress Line
             if (!isFinished) {
                 LinearProgressIndicator(
                     progress = { progress },

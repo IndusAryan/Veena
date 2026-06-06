@@ -10,8 +10,6 @@ pluginManagement {
         }
         mavenCentral()
         gradlePluginPortal()
-        maven("https://maven.toastbits.dev")
-        maven("https://maven.syk.sh/snapshots")
     }
 }
 dependencyResolutionManagement {
@@ -20,8 +18,6 @@ dependencyResolutionManagement {
         google()
         maven("https://jitpack.io")
         mavenCentral()
-        maven("https://maven.toastbits.dev")
-        maven("https://maven.syk.sh/snapshots")
     }
 }
 

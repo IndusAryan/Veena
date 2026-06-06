@@ -7,29 +7,23 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.indus.veena.database.DataStoreKeys
 import com.indus.veena.database.DataStoreKeys.SUGGESTION_PROVIDER_KEY
-import com.indus.veena.di.AppModule.getValueFlow
-import com.indus.veena.di.AppModule.setValue
-import com.indus.veena.extension.ExtensionManager
+import com.indus.veena.di.DataStoreModule.getValueFlow
 import com.indus.veena.helpers.safeValueOf
 import com.indus.veena.helpers.saveEnum
 import com.indus.veena.repository.MusicRepository
-import com.indus.veena.repository.MusicRepository.ProviderItem
 import com.indus.veena.ui.theme.VeenaAccent
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-import kotlin.collections.map
-import kotlin.collections.toMutableList
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val dataStore: DataStore<Preferences>,
-    private val musicRepository: MusicRepository
+    musicRepository: MusicRepository
     ): ViewModel() {
 
     suspend fun getInitialSettings(): InitialSettings {

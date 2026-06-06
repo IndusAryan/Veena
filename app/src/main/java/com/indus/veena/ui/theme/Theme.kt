@@ -13,7 +13,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
@@ -36,8 +35,6 @@ enum class VeenaAccent(val color: Color, val displayName: String) {
     GREEN_BENZAITEN(GreenBenzaiten, "Green Benzaiten"),
     GOLD_CROWN(GoldCrown, "Gold Crown")
 }
-
-private class SchemePair(val light: ColorScheme, val dark: ColorScheme)
 
 private object PinkLotusScheme {
     val light = lightColorScheme(
@@ -368,7 +365,6 @@ private fun paletteFor(accent: VeenaAccent, dark: Boolean): ColorScheme = when (
 @Composable
 fun VeenaTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
     accent: VeenaAccent = VeenaAccent.MATERIAL_YOU,
     content: @Composable () -> Unit
 ) {

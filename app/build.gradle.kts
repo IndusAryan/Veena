@@ -69,8 +69,6 @@ dependencies {
     implementation(libs.androidx.palette.ktx)
     ksp(libs.hilt.android.compiler)
     implementation(libs.androidx.hilt.navigation.compose)
-    //implementation(libs.retrofit)
-    //implementation(libs.converter.kotlinx.serialization)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.logging.interceptor)
     implementation(libs.coil.compose)
@@ -86,8 +84,6 @@ dependencies {
     implementation(libs.androidx.material3)
 
     implementation(libs.androidx.compose.material3.android)
-    //implementation(libs.newpipeextractor)
-    implementation("com.github.teamnewpipe:NewPipeExtractor:v0.26.2")
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.core.splashscreen)
 
@@ -98,10 +94,9 @@ dependencies {
     implementation(libs.androidx.hilt.work)
     ksp(libs.androidx.hilt.compiler)
     implementation(libs.androidx.work.runtime.ktx)
-    implementation("io.github.dokar3:quickjs-kt:1.0.5")
-    implementation("io.github.dokar3:quickjs-kt-converter-ktxserialization:1.0.5")
+    implementation(libs.quickjs.kt)
+    implementation(libs.quickjs.kt.converter.ktxserialization)
     coreLibraryDesugaring(libs.desugar.jdk.libs.nio)
-    implementation("io.github.kingg22:vibrion-id3-android:0.7.0")
 
     /*implementation(libs.ytm.kt) {
         // Exclude the old extractor version
@@ -124,5 +119,5 @@ dependencies {
     androidTestImplementation(platform(libs.androidx.compose.bom))
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
-    implementation("org.json:json:20260522")
+    implementation(libs.json)
 }

@@ -10,7 +10,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.media3.common.Player
 import com.indus.veena.database.DataStoreKeys
-import com.indus.veena.di.AppModule.getSnapshot
+import com.indus.veena.di.DataStoreModule.getSnapshot
 import com.indus.veena.di.DownloadManager
 import com.indus.veena.helpers.VeenaLog
 import com.indus.veena.models.Provider
@@ -41,7 +41,6 @@ class PlayerViewModel @Inject constructor(
         HIDDEN, MINI, FULL
     }
 
-    // UI State
     data class PlayerState(
         val activeSong: SongModel? = null,
         val isPlaying: Boolean = false,
@@ -69,14 +68,12 @@ class PlayerViewModel @Inject constructor(
             }
         }
 
-        // 1. Listen to isPlaying changes via Player.Listener (exposed by MusicController)
         viewModelScope.launch {
             musicController.isPlaying.collect { isPlaying ->
                 _uiState.update { it.copy(isPlaying = isPlaying) }
             }
         }
 
-        // 2. Listen to playbackState changes (for buffering)
         viewModelScope.launch {
             musicController.playbackState.collect { playbackState ->
                 _uiState.update {
@@ -85,21 +82,19 @@ class PlayerViewModel @Inject constructor(
             }
         }
 
-        // 3. Listen to duration changes
         viewModelScope.launch {
             musicController.currentDuration.collect { duration ->
                 _uiState.update { it.copy(duration = duration.coerceAtLeast(1L)) }
             }
         }
 
-        // 4. Sync Current Position Loop (Only for Seekbar)
         viewModelScope.launch {
             while (true) {
                 val controller = musicController.mediaController
                 if (controller != null && controller.isConnected && controller.isPlaying) {
                     _currentPosition.value = controller.currentPosition
                 }
-                delay(1000) // 500ms for smoother seekbar
+                delay(1000)
             }
         }
     }
@@ -111,40 +106,28 @@ class PlayerViewModel @Inject constructor(
 
             if (song.provider == Provider.LOCAL.name) {
                 VeenaLog.d(TAG, "STAGE 2: Detected LOCAL song. Playing from path: ${song.url}")
-                // Wrap the path in a File Uri for Media3 compatibility
                 val uri = Uri.fromFile(File(song.url)).toString()
                 musicController.playSong(uri, song)
                 VeenaLog.d(TAG, "STAGE 3: Local Playback Started.")
-                return@launch // EXIT EARLY
+                return@launch
             }
 
             try {
                 VeenaLog.d(TAG, "STAGE 2: Fetching full metadata for ID: ${song.id}")
-                // 1. Fetch the specific streamable URLs for this song/provider
                 val detailedSong = repository.getSongDetails(song.id, song.provider)
-                val urls = detailedSong?.streamableUrls
                 val qualityName = dataStore.getSnapshot(DataStoreKeys.AUDIO_QUALITY_KEY, DataStoreKeys.AudioQuality.HIGH.name)
                 val quality = try { DataStoreKeys.AudioQuality.valueOf(qualityName) } catch(e:Exception) { DataStoreKeys.AudioQuality.HIGH }
                 VeenaLog.d(TAG, "STAGE 3: Selecting Stream (User Pref: $quality)")
                 val streamUrl = if (song.provider == Provider.LOCAL.name) {
                     Uri.fromFile(File(song.url)).toString()
                 } else {
-                   // val detailedSong = repository.getSongDetails(song.id, song.provider)
                     val qualityStr = dataStore.getSnapshot(DataStoreKeys.AUDIO_QUALITY_KEY, "HIGH")
                     val quality = DataStoreKeys.AudioQuality.valueOf(qualityStr)
                     detailedSong?.streamableUrls?.let { selectBestStream(it, quality) }
                 }
-                    /*val streamUrl = if (urls != null) {
-                        when (quality) {
-                            DataStoreKeys.AudioQuality.HIGH -> urls["320kbps"] ?: urls["160kbps"] ?: urls.values.firstOrNull()
-                            DataStoreKeys.AudioQuality.MEDIUM -> urls["160kbps"] ?: urls["320kbps"] ?: urls.values.firstOrNull()
-                            DataStoreKeys.AudioQuality.LOW -> urls["48kbps"] ?: urls["96kbps"] ?: urls.values.lastOrNull()
-                        }
-                    } else null*/
 
                 if (streamUrl != null) {
                     VeenaLog.d(TAG, "STAGE 4: Passing URI (Quality-$quality) to Media3 Service -> $streamUrl")
-                    // Pass the original metadata (titles/images) + the new URL to the controller
                     musicController.playSong(streamUrl, song)
                     VeenaLog.d(TAG, "STAGE 5: Controller Hand-off Complete.")
                 } else {
@@ -231,7 +214,6 @@ class PlayerViewModel @Inject constructor(
         }
     }
 
-    // Helper to show Toast on Main Thread
     private fun showToast(message: String) {
         viewModelScope.launch(Dispatchers.Main) {
             Toast.makeText(musicController.ctx, message, Toast.LENGTH_LONG).show()

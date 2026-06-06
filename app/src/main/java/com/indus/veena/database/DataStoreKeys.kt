@@ -10,8 +10,6 @@ object DataStoreKeys {
     enum class AudioQuality {
         HIGH, MEDIUM, LOW
     }
-
-    val SEARCH_HISTORY_KEY = stringPreferencesKey("search_history_items")
     val SUGGESTION_PROVIDER_KEY = stringPreferencesKey("suggestion_provider")
     val APP_THEME_KEY = stringPreferencesKey("app_theme")
     val APP_ACCENT_KEY = stringPreferencesKey("app_accent")

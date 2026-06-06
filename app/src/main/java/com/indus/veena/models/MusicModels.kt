@@ -3,7 +3,7 @@ package com.indus.veena.models
 import android.os.Parcelable
 import kotlinx.parcelize.Parcelize
 
-enum class Provider { Saavn, YTMusic, NEWPIPE, SoundCloud, Tidal, LOCAL }
+enum class Provider { YTMusic, NEWPIPE, Tidal, LOCAL }
 
 @Parcelize
 data class SongModel(

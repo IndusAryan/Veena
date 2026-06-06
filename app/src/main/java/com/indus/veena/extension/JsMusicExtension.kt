@@ -5,29 +5,20 @@ import com.dokar.quickjs.binding.asyncFunction
 import com.dokar.quickjs.binding.function
 import com.indus.veena.contract.ExtSong
 import com.indus.veena.contract.ExtensionHost
-import com.indus.veena.contract.ExtensionManifest
 import com.indus.veena.contract.MusicAddon
+import com.indus.veena.di.ExtensionModule.json
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withContext
-import kotlinx.serialization.json.Json
-
-interface JsExtensionFactory {
-    suspend fun create(script: String, manifest: ExtensionManifest): MusicAddon
-}
 
 class JsMusicExtension(
     private val script: String,
-    val manifest: ExtensionManifest,
-    private val host: ExtensionHost
 ) : MusicAddon {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var quickJs: QuickJs? = null
-    private val json = Json { ignoreUnknownKeys = true; isLenient = true }
 
     override fun onLoad(host: ExtensionHost) = runBlocking {
         quickJs = QuickJs.create(Dispatchers.IO).apply {
