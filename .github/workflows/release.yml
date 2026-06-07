@@ -39,4 +39,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: veena-release.apk
-          path: app/build/outputs/apk/release/veena-release.apk
+          path: app/build/outputs/apk/release/*.apk
