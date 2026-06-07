@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 plugins {
     `kotlin-dsl`
     kotlin("plugin.serialization") version("2.3.21")
@@ -6,6 +8,17 @@ plugins {
 
 group = "com.github.IndusVeena"
 version = "1.0.0"
+
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
+    compilerOptions {
+        jvmTarget.set(JvmTarget.JVM_17)
+    }
+}
+
+tasks.withType<JavaCompile>().configureEach {
+    sourceCompatibility = "17"
+    targetCompatibility = "17"
+}
 
 gradlePlugin {
     plugins {
@@ -21,7 +34,6 @@ gradlePlugin {
 dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
 }
-
 publishing {
     publications {
         register<MavenPublication>("pluginMaven") {

@@ -12,6 +12,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.indus.veena.models.SongModel
+import com.indus.veena.ui.screens.addons.AddonsScreen
 import com.indus.veena.ui.screens.debugmenu.DebugBackupScreen
 import com.indus.veena.ui.screens.downloads.DownloadsScreen
 import com.indus.veena.ui.screens.home.HomeScreen
@@ -50,9 +51,11 @@ fun NavGraph(
         }
         composable<Screen.Trending> { TrendingScreen() }
         composable<Screen.Settings> { SettingsScreen(
-            onDebugMenuClick = { navController.navigate(Screen.DebugScreen) }
+            onDebugMenuClick = { navController.navigate(Screen.DebugScreen) },
+            onAddonsClick = { navController.navigate(Screen.Addons) }
         )
         }
+        composable<Screen.Addons> { AddonsScreen(navController::popCurrentPage) }
         composable<Screen.Downloads> {
             DownloadsScreen(
                 paddingValues = paddingValues,

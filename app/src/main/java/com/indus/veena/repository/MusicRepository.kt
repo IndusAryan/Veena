@@ -54,9 +54,9 @@ class MusicRepository @Inject constructor(
 
     private suspend fun syncAndLoadExtensions() {
         val internalDir = File(context.filesDir, "extensions").apply { mkdirs() }
-        val externalDir = context.getExternalFilesDir("extensions")
+        //val externalDir = context.getExternalFilesDir("extensions")
 
-        externalDir?.listFiles()?.forEach { externalFile ->
+        /*externalDir?.listFiles()?.forEach { externalFile ->
             if (externalFile.extension.lowercase() in listOf("js", "veena")) {
                 val target = File(internalDir, externalFile.name)
                 if (!target.exists() || externalFile.lastModified() > target.lastModified()) {
@@ -66,7 +66,7 @@ class MusicRepository @Inject constructor(
                     Log.d(TAG, "Synced: ${externalFile.name}")
                 }
             }
-        }
+        }*/
         internalDir.listFiles()
             ?.filter { it.extension.lowercase() in listOf("js", "veena") }
             ?.forEach { extensionManager.loadFile(it) }

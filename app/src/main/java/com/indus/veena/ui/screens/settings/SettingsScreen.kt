@@ -31,6 +31,7 @@ import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.Download
+import androidx.compose.material.icons.outlined.Extension
 import androidx.compose.material.icons.outlined.HighQuality
 import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.Search
@@ -71,6 +72,7 @@ import com.indus.veena.ui.theme.VeenaAccent
 @Composable
 fun SettingsScreen(
     onDebugMenuClick: () -> Unit,
+    onAddonsClick: () -> Unit,
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val currentSuggestionId by viewModel.currentSuggestionProvider.collectAsStateWithLifecycle()
@@ -110,7 +112,7 @@ fun SettingsScreen(
                 .fillMaxSize()
                 .padding(top = innerPadding.calculateTopPadding())
                 .verticalScroll(rememberScrollState())
-                .padding(bottom = 120.dp) // room for bottom nav
+                .padding(bottom = 140.dp) // room for bottom nav
         ) {
             SettingsSectionHeader(icon = Icons.Outlined.Palette, title = "Appearance")
 
@@ -181,6 +183,18 @@ fun SettingsScreen(
                         textAlign = TextAlign.Start
                     )
                 }
+            }
+
+            Spacer(Modifier.height(24.dp))
+
+            SettingsSectionHeader(icon = Icons.Outlined.HighQuality, title = "Addons")
+            SettingsCard {
+                SettingsRow(
+                    icon = Icons.Outlined.Extension,
+                    title = "Addon Manager",
+                    subtitle = "Manage providers",
+                    onClick = { onAddonsClick() }
+                )
             }
 
             Spacer(Modifier.height(24.dp))

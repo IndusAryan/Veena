@@ -72,11 +72,11 @@ fun DownloadsScreen(
         topBar = {
             TopAppBar(
                 title = { Text("Downloads", fontWeight = FontWeight.Bold) },
-                navigationIcon = {
+                /*navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
-                }
+                }*/
             )
         }
     ) { innerPadding ->

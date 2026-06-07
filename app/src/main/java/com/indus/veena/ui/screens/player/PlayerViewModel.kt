@@ -153,6 +153,7 @@ class PlayerViewModel @Inject constructor(
     }
 
     fun updateDominantColor(color: Color) {
+        VeenaLog.d(TAG, "Dominant Color: $color")
         _uiState.update { it.copy(dominantColor = color) }
     }
 

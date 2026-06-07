@@ -1,5 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <style name="Theme.Veena" parent="android:Theme.Material.Light.NoActionBar" />
+    <style name="Theme.Veena" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="windowSplashScreenBackground">@color/black</item>
+        <!-- Reference your crisp Vector Drawable XML here -->
+        <item name="windowSplashScreenAnimatedIcon">@color/black</item>
+
+        <!-- Sets the actual app theme to load immediately afterward -->
+        <item name="postSplashScreenTheme">@style/Theme.Veena</item>
+    </style>
 </resources>

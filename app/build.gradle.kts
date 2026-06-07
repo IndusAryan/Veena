@@ -28,12 +28,17 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = false
-            isDebuggable = false
             isShrinkResources = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            val releaseSigning = signingConfigs.findByName("release")
+            signingConfig = if (releaseSigning?.storeFile?.exists() == true) {
+                releaseSigning
+            } else {
+                signingConfigs.getByName("debug")
+            }
         }
         debug {
             resValue("string", "app_name", "Veena Debug")
@@ -57,6 +62,18 @@ android {
         buildConfig = true
         compose = true
         resValues = true
+    }
+
+    signingConfigs {
+        create("release") {
+            val keystorePath = System.getenv("KEYSTORE_PATH")
+            if (keystorePath != null) {
+                storeFile = file(keystorePath)
+                storePassword = System.getenv("STORE_PASSWORD")
+                keyAlias = System.getenv("ALIAS")
+                keyPassword = System.getenv("PASSWORD")
+            }
+        }
     }
 }
 

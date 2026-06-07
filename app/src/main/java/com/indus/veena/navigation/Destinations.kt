@@ -11,6 +11,7 @@ sealed interface Screen {
     @Serializable data object Home : Screen
     @Serializable data object Trending : Screen
     @Serializable data object Settings : Screen
+    @Serializable data object Addons : Screen
     @Serializable data object Player : Screen
     @Serializable data object Downloads: Screen
     @Serializable data object DebugScreen: Screen

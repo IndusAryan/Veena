@@ -145,6 +145,19 @@ class ExtensionManager @Inject constructor(
         _extensions.value = emptyMap()
     }
 
+    suspend fun unloadExtension(id: String) = withContext(Dispatchers.Main) {
+        val extension = _extensions.value[id]
+        if (extension != null) {
+            try {
+                extension.addon.onUnload()
+            } catch (e: Exception) {
+                Log.e(TAG, "Error unloading addon: $id", e)
+            }
+            _extensions.update { it - id }
+            Log.d(TAG, "Unloaded addon from memory: $id")
+        }
+    }
+
     companion object {
         private const val TAG = "ExtensionManager"
     }
