@@ -5,4 +5,4 @@ install:
   # 1. Build and install the Android Extension Contract module
   - ./gradlew :extension-contract:publishToMavenLocal -x test
   # 2. Build and install the Custom Gradle Plugin module
-  - ./gradlew :veena-gradle-plugin publishToMavenLocal -x test
+  - ./gradlew :veena-gradle-plugin:publishToMavenLocal -x test
