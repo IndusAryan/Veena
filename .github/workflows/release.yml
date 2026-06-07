@@ -5,6 +5,9 @@ on:
     branches:
       - main
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -29,14 +32,16 @@ jobs:
 
       - name: Build with Gradle
         env:
-          KEYSTORE_PATH: ../keystore.jks
-          KEYSTORE_PASSWORD: ${{ secrets.PASSWORD }}
-          KEY_ALIAS: ${{ secrets.ALIAS }}
-          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          KEYSTORE_PATH: keystore.jks
+          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
+          ALIAS: ${{ secrets.ALIAS }}
+          PASSWORD: ${{ secrets.PASSWORD }}
         run: ./gradlew assembleRelease
 
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v3
         with:
-          name: veena-release.apk
-          path: app/build/outputs/apk/release/*.apk
+          files: app/build/outputs/apk/release/*.apk
+          tag_name: ${{ github.ref_name }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
