@@ -1,5 +1,4 @@
 pluginManagement {
-    includeBuild("veena-gradle-plugin")
     repositories {
         google {
             content {
@@ -24,7 +23,8 @@ dependencyResolutionManagement {
 rootProject.name = "Veena"
 include(":app")
 include(":extension-contract")
-include(":YTMusicPlugin")
+/*include(":YTMusicPlugin")
 include(":NewPipePlugin")
 include(":SoundCloudPlugin")
-include(":saavn-addon")
+include(":saavn-addon")*/
+include("veena-gradle-plugin")
