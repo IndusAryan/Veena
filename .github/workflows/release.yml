@@ -31,11 +31,11 @@ jobs:
 
       - name: Decode keystore
         run: |
-          echo "${{ secrets.KEY_B64 }}" | base64 --decode > keystore.jks
+          echo "${{ secrets.KEY_B64 }}" | base64 --decode > ${{ github.workspace }}/keystore.jks
 
       - name: Build with Gradle
         env:
-          KEYSTORE_PATH: keystore.jks
+          KEYSTORE_PATH: ${{ github.workspace }}/keystore.jks
           STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
           ALIAS: ${{ secrets.ALIAS }}
           PASSWORD: ${{ secrets.PASSWORD }}

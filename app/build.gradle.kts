@@ -66,12 +66,13 @@ android {
 
     signingConfigs {
         create("release") {
+            val isCI = System.getenv("CI") != null // GitHub Actions sets this automatically
             val keystorePath = System.getenv("KEYSTORE_PATH")
-            if (keystorePath != null) {
-                storeFile = file(keystorePath)
-                storePassword = System.getenv("STORE_PASSWORD")
-                keyAlias = System.getenv("ALIAS")
-                keyPassword = System.getenv("PASSWORD")
+            if (isCI) {
+                storeFile = file(keystorePath ?: error("KEYSTORE_PATH env var is not set"))
+                storePassword = System.getenv("STORE_PASSWORD") ?: error("STORE_PASSWORD env var is not set")
+                keyAlias = System.getenv("ALIAS") ?: error("ALIAS env var is not set")
+                keyPassword = System.getenv("PASSWORD") ?: error("PASSWORD env var is not set")
             }
         }
     }
