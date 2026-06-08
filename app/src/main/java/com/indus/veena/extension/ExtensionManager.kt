@@ -97,7 +97,7 @@ class ExtensionManager @Inject constructor(
             )
         }
 
-        val odexDir = File(context.codeCacheDir, "ext_${manifest.id}_${manifest.versionCode}")
+        val odexDir = File(context.codeCacheDir, "ext_${manifest.id}_${manifest.versionCode}_${file.lastModified()}")
             .also { it.mkdirs() }
 
         context.codeCacheDir.listFiles()
