@@ -61,8 +61,6 @@ class AddonsViewModel @Inject constructor(
 
     private val _updateStatusMap = MutableStateFlow<Map<String, UpdateInfo>>(emptyMap())
     val updateStatusMap = _updateStatusMap.asStateFlow()
-    private val _resolvedUrls = MutableStateFlow<Map<String, String>>(emptyMap())
-    val resolvedUrls = _resolvedUrls.asStateFlow()
 
     init {
         viewModelScope.launch {
@@ -77,30 +75,12 @@ class AddonsViewModel @Inject constructor(
                         val updateUrl = downloadUrl.substringBefore("/releases/download") + "/releases/latest"
                         val info = storeManager.fetchGithubUpdateInfo(updateUrl, addon.id)
                         if (info != null && compareVersions(info.version, addon.version)) {
-                            _updateStatusMap.value = _updateStatusMap.value + (addon.id to info)
+                            _updateStatusMap.value += (addon.id to info)
                         }
                     }
                 }
             }
         }
-
-        viewModelScope.launch {
-            catalog.collect { list ->
-                list.forEach { item ->
-                    launch {
-                        val downloadUrl = item.downloadUrl
-                        if (downloadUrl.contains("/releases/download/")) {
-                            val updateUrl = downloadUrl.substringBefore("/releases/download") + "/releases/latest"
-                            val info = storeManager.fetchGithubUpdateInfo(updateUrl, item.id)
-                            if (info != null) {
-                                _resolvedUrls.update { it + (item.id to info.downloadUrl) }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
         refreshCatalog()
     }
 

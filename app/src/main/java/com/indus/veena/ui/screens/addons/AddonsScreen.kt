@@ -140,7 +140,6 @@ fun AddonsScreen(
                                 items(localInstalled, key = { it.id }) { item ->
                                     val progress = downloadProgress[item.id]
                                     val updateInfo = updateStatusMap[item.id]
-                                    val resolvedUrl = viewModel.resolvedUrls.value[item.id]
                                     val associatedCatalogItem = catalog.find { it.id == item.id }
 
                                     LocalAddonCard(
@@ -150,7 +149,7 @@ fun AddonsScreen(
                                         updateVersion = updateInfo?.version,
                                         downloadProgress = progress,
                                         onUpdate = { updateInfo?.let { viewModel.installAddon(item.id, it.downloadUrl) } },
-                                        onRedownload = { viewModel.installAddon(item.id, resolvedUrl ?: associatedCatalogItem?.downloadUrl ?: "") },
+                                        onRedownload = { viewModel.installAddon(item.id, associatedCatalogItem?.downloadUrl ?: "") },
                                         onDelete = { viewModel.deleteAddon(item.id) }
                                     )
                                 }
