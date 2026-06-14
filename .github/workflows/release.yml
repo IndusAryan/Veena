@@ -41,6 +41,22 @@ jobs:
           PASSWORD: ${{ secrets.PASSWORD }}
         run: ./gradlew assembleRelease
 
+      - name: Verify APK is signed
+        run: |
+          APK=app/build/outputs/apk/release/app-release.apk
+          if [ ! -f "$APK" ]; then
+            echo "Signed APK not found at expected path"; exit 1
+          fi
+          BUILD_TOOLS=$(ls $ANDROID_HOME/build-tools | sort -V | tail -1)
+          "$ANDROID_HOME/build-tools/$BUILD_TOOLS/apksigner" verify --print-certs "$APK"
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release-apk
+          path: app/build/outputs/apk/release/app-release.apk
+          retention-days: 7
+
       - name: Create GitHub Release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
@@ -49,11 +65,3 @@ jobs:
           tag_name: ${{ github.ref_name }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Verify APK is signed
-        run: |
-          APK=app/build/outputs/apk/release/app-release.apk
-          if [ ! -f "$APK" ]; then
-            echo "Signed APK not found at expected path"; exit 1
-          fi
-          jarsigner -verify "$APK" || { echo "APK is NOT signed"; exit 1; }
