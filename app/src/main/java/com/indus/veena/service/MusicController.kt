@@ -2,6 +2,7 @@ package com.indus.veena.service
 
 import android.content.ComponentName
 import android.content.Context
+import android.util.Log
 import androidx.annotation.OptIn
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
@@ -17,6 +18,7 @@ import com.indus.veena.models.SongModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -42,8 +44,11 @@ class MusicController @OptIn(UnstableApi::class)
     // Connection State
     private val _isConnected = MutableStateFlow(false)
 
-    private val _errorFlow = MutableSharedFlow<String>()
-    val errorFlow = _errorFlow
+    private val _errorFlow = MutableSharedFlow<String>(
+        extraBufferCapacity = 10,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST
+    )
+    val errorFlow = _errorFlow.asSharedFlow()
 
     private val _isPlaying = MutableStateFlow(false)
     val isPlaying = _isPlaying.asStateFlow()
@@ -73,7 +78,15 @@ class MusicController @OptIn(UnstableApi::class)
                 // Listen for player changes globally
                 controller.addListener(object : Player.Listener {
                     override fun onPlayerError(error: PlaybackException) {
-                        _errorFlow.tryEmit("Playback Error: ${error.message}")
+                        Log.e("MusicController", "onPlayerError: ${error.errorCodeName}", error)
+                        val errorStr = error.stackTraceToString()
+                        val message = if (error.errorCode == PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS || 
+                            errorStr.contains("403") || error.message?.contains("403") == true) {
+                            "Access Denied (403): The link might have expired or is forbidden."
+                        } else {
+                            "Playback Error: ${error.localizedMessage ?: "Source Error"}"
+                        }
+                        _errorFlow.tryEmit(message)
                     }
 
                     override fun onIsPlayingChanged(isPlaying: Boolean) {

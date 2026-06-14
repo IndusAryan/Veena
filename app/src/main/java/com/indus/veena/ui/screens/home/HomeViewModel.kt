@@ -41,7 +41,8 @@ data class HomeContentState(
     val activeSongId: String = "",
     val selectedProvider: String = "",
     val isLoading: Boolean = false,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val isProvidersEmpty: Boolean = false
 )
 
 @HiltViewModel
@@ -77,6 +78,11 @@ class HomeViewModel @Inject constructor(
                 if (currentState.selectedProvider.isEmpty() && providers.isNotEmpty()) {
                     updateContentState { it.copy(selectedProvider = providers.first().id) }
                 }
+            }
+        }
+        ioScope {
+            repository.noAddonsAvailable.collect { noAddons ->
+                updateContentState { it.copy(isProvidersEmpty = noAddons) }
             }
         }
     }

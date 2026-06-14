@@ -66,6 +66,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.indus.veena.extension.CatalogExtensionItem
+import com.indus.veena.helpers.ImageModuleCoil.LoadImage
 import com.indus.veena.models.UpdateInfo
 
 
@@ -231,10 +232,9 @@ fun LocalAddonCard(
                         .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f), RoundedCornerShape(14.dp)),
                     contentAlignment = Alignment.Center
                 ) {
-                    AsyncImage(
+                    LoadImage(
                         model = iconUrl,
                         contentDescription = null,
-                        contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize(),
                     )
                 }
@@ -343,10 +343,9 @@ fun StoreAddonCard(
                         .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f), RoundedCornerShape(14.dp)),
                     contentAlignment = Alignment.Center
                 ) {
-                    AsyncImage(
+                    LoadImage(
                         model = item.iconUrl,
                         contentDescription = null,
-                        contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize(),
                     )
                 }

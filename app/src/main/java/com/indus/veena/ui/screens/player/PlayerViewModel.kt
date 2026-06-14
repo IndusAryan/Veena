@@ -24,7 +24,9 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
@@ -63,6 +65,9 @@ class PlayerViewModel @Inject constructor(
     private val _currentPosition = MutableStateFlow(0L)
     val currentPosition = _currentPosition
 
+    private val _toastEvent = MutableSharedFlow<String>(extraBufferCapacity = 1)
+    val toastEvent = _toastEvent.asSharedFlow()
+
     val activeDownloads = downloadManager.activeDownloads.stateIn(
         viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
@@ -83,6 +88,7 @@ class PlayerViewModel @Inject constructor(
             musicController.errorFlow.collect { errorMsg ->
                 Log.e("PlayerVM", "Error received: $errorMsg")
                 _uiState.update { it.copy(bufferState = false) }
+                _toastEvent.emit(errorMsg)
             }
         }
 

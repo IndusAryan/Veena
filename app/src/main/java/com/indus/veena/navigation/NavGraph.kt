@@ -47,7 +47,8 @@ fun NavGraph(
                 paddingValues = paddingValues,
                 playerDominantColor = dominantColor,
                 playerState = playerState,
-                onSongClick = { song -> onSongSelected(song) }
+                onSongClick = { song -> onSongSelected(song) },
+                onAddonsClick = { navController.navigate(Screen.Addons) }
             )
         }
         composable<Screen.Trending> { TrendingScreen() }

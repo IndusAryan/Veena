@@ -20,7 +20,7 @@ android {
         minSdk = 24
         targetSdk = 37
         versionCode = 1
-        versionName = "1.0"
+        versionName = "1.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -116,16 +116,11 @@ dependencies {
     implementation(libs.quickjs.kt.converter.ktxserialization)
     coreLibraryDesugaring(libs.desugar.jdk.libs.nio)
 
-    /*implementation(libs.ytm.kt) {
-        // Exclude the old extractor version
-        exclude(group = "com.github.teamnewpipe.newpipeextractor", module = "extractor")
-        // Exclude the new extractor version
-        exclude(group = "com.github.teamnewpipe.NewPipeExtractor", module = "extractor")
-        // Exclude the old timeago-parser version
-        exclude(group = "com.github.teamnewpipe.newpipeextractor", module = "timeago-parser")
-        // Exclude the new timeago-parser version
-        exclude(group = "com.github.teamnewpipe.NewPipeExtractor", module = "timeago-parser")
-    }*/
+    // coroutines dependency is required to prevent dex lib errors in some providers that bundle
+    // their own coroutine dep
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
+
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)

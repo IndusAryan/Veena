@@ -71,9 +71,7 @@ class DownloadWorker @AssistedInject constructor(
         createNotificationChannel()
         setForeground(createForegroundInfo(downloadEntity.title, downloadEntity.progress))
 
-        val downloadsDir =
-            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-        val veenaDir = File(downloadsDir, context.getString(R.string.app_name))
+        val veenaDir = File(context.getExternalFilesDir(Environment.DIRECTORY_MUSIC), "")
         if (!veenaDir.exists()) veenaDir.mkdirs()
 
         // Fixes the empty title and hidden file Scoped Storage crash
@@ -97,8 +95,11 @@ class DownloadWorker @AssistedInject constructor(
         )
 
         val requestBuilder = Request.Builder().url(downloadEntity.url)
-        if (downloadedBytes > 0) requestBuilder.addHeader("Range", "bytes=$downloadedBytes-")
-
+        if (downloadedBytes > 0) {
+            requestBuilder.addHeader("Range", "bytes=$downloadedBytes-")
+        } else {
+            requestBuilder.addHeader("Range", "bytes=0-")
+        }
         downloadEntity.customHeaders.split(";").filter { it.isNotEmpty() }.forEach {
             val parts = it.split(":", limit = 2)
             if (parts.size == 2) requestBuilder.addHeader(parts[0].trim(), parts[1].trim())

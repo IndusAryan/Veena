@@ -4,6 +4,7 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.Player
@@ -69,6 +70,15 @@ class MusicService : MediaSessionService(), MediaSession.Callback {
             )
             .setHandleAudioBecomingNoisy(true)
             .build()
+
+        player?.addListener(object : Player.Listener {
+            override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
+                Log.e("MusicService", "ExoPlayer Error: ${error.message}", error)
+                if (error.errorCode == androidx.media3.common.PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS) {
+                    Log.e("MusicService", "HTTP 403 detected in service!")
+                }
+            }
+        })
 
         val pendingIntent = PendingIntent.getActivity(
             this, 0,

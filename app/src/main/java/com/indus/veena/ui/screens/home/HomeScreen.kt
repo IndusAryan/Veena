@@ -130,6 +130,7 @@ import com.indus.veena.ui.screens.player.PlayerState
 fun HomeScreen(
     paddingValues: PaddingValues,
     onSongClick: (SongModel) -> Unit,
+    onAddonsClick: () -> Unit,
     playerState: PlayerState,
     playerDominantColor: Color? = Color.Unspecified,
     viewModel: HomeViewModel = hiltViewModel()
@@ -167,6 +168,7 @@ fun HomeScreen(
         safeAccentColor = safeAccentColor,
         playerState = playerState,
         onSongClick = onSongClick,
+        onAddonsClick = onAddonsClick,
         onDownloadSong = { song -> viewModel.downloadSong(song, context) },
         onTogglePause = viewModel::togglePause,
         onQueryChange = viewModel::onQueryChange,
@@ -189,6 +191,7 @@ private fun HomeScreenContent(
     safeAccentColor: Color,
     playerState: PlayerState,
     onSongClick: (SongModel) -> Unit,
+    onAddonsClick: () -> Unit,
     onDownloadSong: (SongModel) -> Unit,
     onTogglePause: (String, Boolean) -> Unit,
     onQueryChange: (String) -> Unit,
@@ -219,6 +222,11 @@ private fun HomeScreenContent(
                 topOffset = with(LocalDensity.current) { topBarHeight.toDp() },
                 bottomPadding = paddingValues.calculateBottomPadding(),
                 isAnimActive = isResumed
+            )
+        } else if (state.isProvidersEmpty) {
+            EmptySourcesState(
+                modifier = Modifier.fillMaxSize().padding(paddingValues),
+                onAddonsClick = onAddonsClick
             )
         } else {
             LazyColumn(
@@ -280,6 +288,46 @@ private fun HomeScreenContent(
             onClearClick = onClearSearch,
             onProviderClick = onProviderSelected
         )
+    }
+}
+
+@Composable
+private fun EmptySourcesState(
+    modifier: Modifier = Modifier,
+    onAddonsClick: () -> Unit
+) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Icon(
+            imageVector = Icons.Default.Download,
+            contentDescription = null,
+            modifier = Modifier.size(64.dp),
+            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(
+            text = "No sources configured",
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = "Install addons to start searching and downloading music",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = 32.dp),
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+        )
+        Spacer(modifier = Modifier.height(24.dp))
+        androidx.compose.material3.Button(
+            onClick = onAddonsClick,
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Text("Install Addons")
+        }
     }
 }
 

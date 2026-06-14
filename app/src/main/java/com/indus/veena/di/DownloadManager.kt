@@ -31,7 +31,7 @@ class DownloadManager @Inject constructor(
         song: SongModel,
         streamUrl: String,
         artworkData: ByteArray? = null, // Optional fast-path for image
-        customHeaders: Map<String, String> = emptyMap()
+        customHeaders: Map<String, String> = mapOf("Range" to "bytes=0-")
     ) {
         val headersString = customHeaders.entries.joinToString(";") { "${it.key}:${it.value}" }
 

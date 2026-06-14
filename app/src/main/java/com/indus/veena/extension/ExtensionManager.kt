@@ -42,7 +42,7 @@ class ExtensionManager @Inject constructor(
             description = "Local debug provider",
             author = "System"
         )
-        val localAddon = LocalPlugin().apply {
+        val localAddon = Plugin().apply {
             onLoad(host)
         }
         _extensions.value = mapOf(

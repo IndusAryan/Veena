@@ -14,6 +14,8 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -36,11 +38,14 @@ class MusicRepository @Inject constructor(
     val availableProviders: Flow<List<ProviderItem>> = extensionManager.extensions.map { map ->
         map.values.map { ProviderItem(id = it.manifest.id, name = it.manifest.name) }
     }
-
+    private val _noAddonsAvailable = MutableStateFlow(false)
+    val noAddonsAvailable: StateFlow<Boolean> = _noAddonsAvailable
     init {
         Log.d(TAG, "MusicRepository init. Scanning for plugins...")
         CoroutineScope(Dispatchers.IO).launch {
             syncAndLoadExtensions()
+            val hasProviders = extensionManager.extensions.value.isNotEmpty()
+            _noAddonsAvailable.value = !hasProviders
         }
     }
 
