@@ -4,8 +4,6 @@ import android.content.Context
 import androidx.room3.Room
 import com.indus.veena.R
 import com.indus.veena.database.sqlite.VeenaDB
-import com.indus.veena.database.sqlite.VeenaDB.Companion.MIGRATION_1_2
-import com.indus.veena.database.sqlite.VeenaDB.Companion.MIGRATION_2_3
 import com.indus.veena.database.sqlite.daos.DownloadDao
 import com.indus.veena.database.sqlite.daos.FavouriteDao
 import com.indus.veena.database.sqlite.daos.SearchHistoryDao
@@ -28,7 +26,7 @@ object DatabaseModule {
             context,
             VeenaDB::class.java,
             "${context.getString(R.string.app_name)}_db"
-        ).addMigrations(MIGRATION_1_2, MIGRATION_2_3).build()
+        ).addMigrations().build()
     }
 
     @Provides

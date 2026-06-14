@@ -27,10 +27,13 @@ android {
 
     signingConfigs {
         create("release") {
-            storeFile = file(System.getenv("KEYSTORE_PATH") ?: error("KEYSTORE_PATH not set"))
-            storePassword = System.getenv("STORE_PASSWORD") ?: error("STORE_PASSWORD not set")
-            keyAlias = System.getenv("ALIAS") ?: error("ALIAS not set")
-            keyPassword = System.getenv("PASSWORD") ?: error("PASSWORD not set")
+            val keystorePath = System.getenv("KEYSTORE_PATH")
+            if (keystorePath != null) {
+                storeFile = file(keystorePath)
+                storePassword = System.getenv("STORE_PASSWORD") ?: error("STORE_PASSWORD not set")
+                keyAlias = System.getenv("ALIAS") ?: error("ALIAS not set")
+                keyPassword = System.getenv("PASSWORD") ?: error("PASSWORD not set")
+            }
         }
     }
 
@@ -42,7 +45,11 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            signingConfig = signingConfigs.getByName("release")
+            signingConfig = if (System.getenv("KEYSTORE_PATH") != null) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
         }
         debug {
             resValue("string", "app_name", "Veena Debug")
