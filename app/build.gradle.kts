@@ -25,6 +25,15 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        create("release") {
+            storeFile = file(System.getenv("KEYSTORE_PATH") ?: error("KEYSTORE_PATH not set"))
+            storePassword = System.getenv("STORE_PASSWORD") ?: error("STORE_PASSWORD not set")
+            keyAlias = System.getenv("ALIAS") ?: error("ALIAS not set")
+            keyPassword = System.getenv("PASSWORD") ?: error("PASSWORD not set")
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
@@ -33,16 +42,12 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            val releaseSigning = signingConfigs.findByName("release")
-            signingConfig = if (releaseSigning?.storeFile?.exists() == true) {
-                releaseSigning
-            } else {
-                signingConfigs.getByName("debug")
-            }
+            signingConfig = signingConfigs.getByName("release")
         }
         debug {
             resValue("string", "app_name", "Veena Debug")
             applicationIdSuffix = ".debug"
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
     compileOptions {
@@ -62,19 +67,6 @@ android {
         buildConfig = true
         compose = true
         resValues = true
-    }
-
-    signingConfigs {
-        create("release") {
-            val isCI = System.getenv("CI") != null // GitHub Actions sets this automatically
-            val keystorePath = System.getenv("KEYSTORE_PATH")
-            if (isCI) {
-                storeFile = file(keystorePath ?: error("KEYSTORE_PATH env var is not set"))
-                storePassword = System.getenv("STORE_PASSWORD") ?: error("STORE_PASSWORD env var is not set")
-                keyAlias = System.getenv("ALIAS") ?: error("ALIAS env var is not set")
-                keyPassword = System.getenv("PASSWORD") ?: error("PASSWORD env var is not set")
-            }
-        }
     }
 }
 
