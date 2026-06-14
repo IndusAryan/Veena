@@ -44,8 +44,9 @@ class MusicRepository @Inject constructor(
         Log.d(TAG, "MusicRepository init. Scanning for plugins...")
         CoroutineScope(Dispatchers.IO).launch {
             syncAndLoadExtensions()
-            val hasProviders = extensionManager.extensions.value.isNotEmpty()
-            _noAddonsAvailable.value = !hasProviders
+            extensionManager.extensions.collect { extensions ->
+                _noAddonsAvailable.value = extensions.isEmpty()
+            }
         }
     }
 
