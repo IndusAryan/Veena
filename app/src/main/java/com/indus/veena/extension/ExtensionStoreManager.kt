@@ -3,6 +3,9 @@ package com.indus.veena.extension
 import android.content.Context
 import android.util.Log
 import com.indus.veena.di.ExtensionModule.json
+import com.indus.veena.models.GithubRelease
+import com.indus.veena.models.UpdateInfo
+import com.indus.veena.util.formatSize
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -38,7 +41,7 @@ class ExtensionStoreManager @Inject constructor(
     private val okHttpClient: OkHttpClient,
     private val extensionManager: ExtensionManager
 ) {
-    private val catalogUrl = "https://raw.githubusercontent.com/IndusVeena/VeenaCommunityAddons/master/catalog.json"
+    private val catalogUrl = "https://raw.githubusercontent.com/IndusAryan/Veena/refs/heads/main/app/src/main/assets/catalog.json"
     private val TAG = "ExtensionStoreManager"
 
     private val _downloadProgress = MutableStateFlow<Map<String, Float>>(emptyMap())
@@ -98,6 +101,34 @@ class ExtensionStoreManager @Inject constructor(
             _downloadProgress.update { it - item.id }
             Log.e(TAG, "Failed to download/install extension: ${item.id}", e)
             throw e
+        }
+    }
+
+    suspend fun fetchGithubUpdateInfo(updateUrl: String, addonId: String): UpdateInfo? = withContext(Dispatchers.IO) {
+        if (updateUrl.isEmpty() || !updateUrl.contains("github.com")) return@withContext null
+        val apiUrl = updateUrl
+            .replace("https://github.com", "https://api.github.com/repos")
+            .replace("/releases/latest", "/releases/latest")
+
+        val request = Request.Builder().url(apiUrl).build()
+        try {
+            okHttpClient.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) return@withContext null
+                val release = json.decodeFromString<GithubRelease>(response.body.string())
+                val matchingAsset = release.assets.find { it.name.endsWith(".veena") || it.name.contains(addonId) }
+                    ?: release.assets.firstOrNull()
+
+                if (matchingAsset != null) {
+                    UpdateInfo(
+                        version = release.tag_name.removePrefix("v"),
+                        downloadUrl = matchingAsset.browser_download_url,
+                        size = formatSize(matchingAsset.size)
+                    )
+                } else null
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to fetch live Github updates for: $addonId", e)
+            null
         }
     }
 

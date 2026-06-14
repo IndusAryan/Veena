@@ -50,6 +50,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Forward10
@@ -121,7 +123,7 @@ import kotlin.random.Random
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun FullPlayerOverlay(
-    state: PlayerViewModel.PlayerState,
+    state: PlayerState,
     viewModel: PlayerViewModel,
     onCollapse: () -> Unit
 ) {
@@ -142,7 +144,7 @@ fun FullPlayerOverlay(
         }
     }
 
-    if (state.displayMode == PlayerViewModel.PlayerDisplayMode.FULL) {
+    if (state.displayMode == PlayerDisplayMode.FULL) {
         BackHandler { onCollapse() }
     }
 
@@ -156,7 +158,8 @@ fun FullPlayerOverlay(
         onSeek = viewModel::seekTo,
         onTogglePlayPause = viewModel::togglePlayPause,
         onStop = { viewModel.stopPlayer(); onCollapse() },
-        onDownload = viewModel::downloadCurrentSong
+        onDownload = viewModel::downloadCurrentSong,
+        onToggleFavourite = viewModel::toggleFavourite
     )
 }
 
@@ -164,7 +167,7 @@ fun FullPlayerOverlay(
 @Composable
 private fun PlayerSheetContent(
     song: SongModel,
-    state: PlayerViewModel.PlayerState,
+    state: PlayerState,
     currentPosition: Long,
     downloadEntity: DownloadEntity?,
     isAnimActive: Boolean,
@@ -172,7 +175,8 @@ private fun PlayerSheetContent(
     onSeek: (Long) -> Unit,
     onTogglePlayPause: () -> Unit,
     onStop: () -> Unit,
-    onDownload: () -> Unit
+    onDownload: () -> Unit,
+    onToggleFavourite: () -> Unit
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -309,6 +313,14 @@ private fun PlayerSheetContent(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    IconButton(onClick = onToggleFavourite) {
+                        Icon(
+                            if (state.isFavourite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                            contentDescription = "Favourite",
+                            tint = if (state.isFavourite) Color.Red else Color.White
+                        )
+                    }
+
                     Column(Modifier.weight(1f)) {
                         Text(
                             text = song.title,

@@ -19,6 +19,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -33,6 +34,8 @@ class MusicController @OptIn(UnstableApi::class)
     @ApplicationContext private val context: Context
 ) {
     var mediaController: MediaController? = null
+    private val _closeEvent = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+    val closeEvent = _closeEvent.asSharedFlow()
     private val connectionFuture = CompletableFuture<MediaController>()
     val ctx = context
 
@@ -75,6 +78,12 @@ class MusicController @OptIn(UnstableApi::class)
 
                     override fun onIsPlayingChanged(isPlaying: Boolean) {
                         _isPlaying.value = isPlaying
+                    }
+
+                    override fun onEvents(player: Player, events: Player.Events) {
+                        if (!controller.isConnected) {
+                            _closeEvent.tryEmit(Unit)
+                        }
                     }
 
                     override fun onPlaybackStateChanged(playbackState: Int) {

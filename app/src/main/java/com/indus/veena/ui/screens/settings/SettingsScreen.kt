@@ -99,7 +99,6 @@ fun SettingsScreen(
                         fontWeight = FontWeight.Bold
                     )
                 },
-                //windowInsets = WindowInsets(0, 0, 0, 0),
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = Color.Transparent,
                     scrolledContainerColor = MaterialTheme.colorScheme.surface
@@ -110,8 +109,10 @@ fun SettingsScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = innerPadding.calculateTopPadding())
-                .verticalScroll(rememberScrollState())
+                .padding(
+                    top = innerPadding.calculateTopPadding(),
+                    bottom = innerPadding.calculateBottomPadding() + 32.dp
+                ).verticalScroll(rememberScrollState())
                 .padding(bottom = 140.dp) // room for bottom nav
         ) {
             SettingsSectionHeader(icon = Icons.Outlined.Palette, title = "Appearance")

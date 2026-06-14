@@ -14,6 +14,7 @@ data class SongModel(
     val duration: String,
     val streamableUrls: Map<String, String> = emptyMap(),
     val provider: String,
+    val extensionName: String = "",
     val url: String = "",
     val album: String = "",
     val albumArtist: String? = null,

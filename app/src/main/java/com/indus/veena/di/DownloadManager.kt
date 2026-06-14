@@ -40,6 +40,7 @@ class DownloadManager @Inject constructor(
             title = song.title,
             url = streamUrl,
             artworkUrl = song.thumbnail,
+            extensionName = song.extensionName,
             artworkData = artworkData,
             customHeaders = headersString,
             artist = song.artist,
@@ -63,6 +64,7 @@ class DownloadManager @Inject constructor(
             url = "",
             state = DownloadState.FETCHING,
             artworkUrl = "",
+            extensionName = song.extensionName,
             customHeaders = "",
         )
         downloadDao.insertOrUpdate(entity)

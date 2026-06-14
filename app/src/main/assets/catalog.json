@@ -37,5 +37,18 @@
     "isOfficial": false,
     "size": "869 KB",
     "capabilities": ["search", "details", "stream"]
+  },
+  {
+    "id": "ytm",
+    "name": "YT Music",
+    "version": "1.0.0",
+    "versionCode": 1,
+    "author": "Community",
+    "description": "Stream from YT Music.",
+    "downloadUrl": "https://github.com/Dp3seoQne/VeenaCommunityAddons/releases/download/master/ytm.veena",
+    "iconUrl": "https://upload.wikimedia.org/wikipedia/commons/d/d8/YouTubeMusic_Logo.png",
+    "isOfficial": false,
+    "size": "14.1 MB",
+    "capabilities": ["search", "details", "stream", "suggestions"]
   }
 ]

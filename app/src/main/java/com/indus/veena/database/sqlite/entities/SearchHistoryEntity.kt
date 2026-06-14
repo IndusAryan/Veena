@@ -7,7 +7,6 @@ import kotlinx.serialization.Serializable
 @Serializable
 @Entity(tableName = "search_history")
 data class SearchHistoryEntity(
-    @PrimaryKey(autoGenerate = true) val id: Int = 0,
-    val query: String,
+    @PrimaryKey val query: String,
     val timestamp: Long = System.currentTimeMillis()
 )

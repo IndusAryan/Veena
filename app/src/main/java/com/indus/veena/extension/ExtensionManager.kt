@@ -42,7 +42,7 @@ class ExtensionManager @Inject constructor(
             description = "Local debug provider",
             author = "System"
         )
-        val localAddon = NewPipeLocalPlugin().apply {
+        val localAddon = LocalPlugin().apply {
             onLoad(host)
         }
         _extensions.value = mapOf(
@@ -156,6 +156,11 @@ class ExtensionManager @Inject constructor(
             _extensions.update { it - id }
             Log.d(TAG, "Unloaded addon from memory: $id")
         }
+    }
+
+    fun getExtensionLastModified(id: String): Long {
+        val file = File(context.filesDir, "extensions/$id.veena")
+        return if (file.exists()) file.lastModified() else 0L
     }
 
     companion object {

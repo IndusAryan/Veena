@@ -23,8 +23,4 @@ dependencyResolutionManagement {
 rootProject.name = "Veena"
 include(":app")
 include(":extension-contract")
-/*include(":YTMusicPlugin")
-include(":NewPipePlugin")
-include(":SoundCloudPlugin")
-include(":saavn-addon")*/
 include("veena-gradle-plugin")

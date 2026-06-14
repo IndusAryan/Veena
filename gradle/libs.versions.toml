@@ -1,7 +1,7 @@
 [versions]
 agp = "9.1.1"
-coilNetworkOkhttp = "3.4.0"
-coilCompose = "3.4.0"
+coilNetworkOkhttp = "3.5.0"
+coilCompose = "3.5.0"
 datastorePreferences = "1.2.1"
 coreSplashscreen = "1.2.0"
 desugar_jdk_libs_nio = "2.1.5"
@@ -11,7 +11,7 @@ hiltAndroidCompiler = "2.59.2"
 hiltAndroid = "2.59.2"
 hiltNavigationCompose = "1.3.0"
 json = "20260522"
-kotlin = "2.3.21"
+kotlin = "2.4.0"
 coreKtx = "1.19.0"
 lifecycleRuntimeKtx = "2.10.0"
 activityCompose = "1.13.0"
@@ -27,9 +27,7 @@ media3Transformer = "1.10.1"
 media3Ui = "1.10.1"
 navigationCompose = "2.9.8"
 kotlinxSerializationJson = "1.11.0"
-ksp = "2.3.4"
-#newpipeextractor = "v0.26.2"
-#retrofit = "3.0.0"
+ksp = "2.3.9"
 quickjsKt = "1.0.5"
 quickjsKtConverterKtxserialization = "1.0.5"
 room3Runtime = "3.0.0-alpha06"
@@ -81,7 +79,6 @@ androidx-palette-ktx = { group = "androidx.palette", name = "palette-ktx", versi
 quickjs-kt = { module = "io.github.dokar3:quickjs-kt", version.ref = "quickjsKt" }
 quickjs-kt-converter-ktxserialization = { module = "io.github.dokar3:quickjs-kt-converter-ktxserialization", version.ref = "quickjsKtConverterKtxserialization" }
 taglib = { module = "io.github.kyant0:taglib", version.ref = "taglib" }
-#ytm-kt = { module = "dev.toastbits:ytm-kt-android", version.ref = "ytmKt" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

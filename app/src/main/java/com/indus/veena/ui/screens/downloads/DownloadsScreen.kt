@@ -2,6 +2,7 @@ package com.indus.veena.ui.screens.downloads
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,10 +17,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
@@ -37,6 +39,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -64,19 +67,17 @@ fun DownloadsScreen(
     paddingValues: PaddingValues,
     onBackClick: () -> Unit,
     onSongClick: (SongModel) -> Unit,
-    viewModel: DownloadsViewModel = hiltViewModel()
+    onShowAllFavourites: () -> Unit,
+    viewModel: DownloadsViewModel = hiltViewModel(),
+    favViewModel: com.indus.veena.ui.screens.favourites.FavouritesViewModel = hiltViewModel()
 ) {
     val downloads by viewModel.downloads.collectAsStateWithLifecycle()
+    val favourites by favViewModel.favourites.collectAsStateWithLifecycle(emptyList())
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Downloads", fontWeight = FontWeight.Bold) },
-                /*navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                }*/
+                title = { Text("Library", fontWeight = FontWeight.Bold) },
             )
         }
     ) { innerPadding ->
@@ -90,6 +91,88 @@ fun DownloadsScreen(
             ),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            // Favourites Section
+            item {
+                Column(modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            "Favourites",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold
+                        )
+                        TextButton(onClick = onShowAllFavourites) {
+                            Text("Show All")
+                            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, modifier = Modifier.size(16.dp))
+                        }
+                    }
+
+                    if (favourites.isEmpty()) {
+                        Card(
+                            modifier = Modifier.fillMaxWidth().height(100.dp),
+                            shape = RoundedCornerShape(20.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)
+                        ) {
+                            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                Text("No favourites yet", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                    } else {
+                        // Horizontal scroll for a few favourites
+                        Row(
+                            modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            favourites.take(5).forEach { fav ->
+                                Box(modifier = Modifier.width(280.dp)) {
+                                    DownloadItemCard(
+                                        entity = DownloadEntity(
+                                            songId = fav.songId,
+                                            title = fav.title,
+                                            artist = fav.artist,
+                                            artworkUrl = fav.thumbnail,
+                                            url = fav.url,
+                                            extensionName = fav.extensionName,
+                                            customHeaders = "",
+                                            state = DownloadState.COMPLETED
+                                        ),
+                                        onCardClick = {
+                                            onSongClick(SongModel(
+                                                id = fav.songId,
+                                                title = fav.title,
+                                                artist = fav.artist,
+                                                thumbnail = fav.thumbnail,
+                                                duration = fav.duration,
+                                                url = fav.url,
+                                                provider = fav.provider,
+                                                album = fav.album,
+                                                year = fav.year,
+                                                composer = fav.composer,
+                                                genre = fav.genre
+                                            ))
+                                        },
+                                        onTogglePause = {},
+                                        onCancel = {}
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            item {
+                Text(
+                    "Downloads",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
+            }
+
             if (downloads.isEmpty()) {
                 item {
                     Box(modifier = Modifier.fillParentMaxSize(), contentAlignment = Alignment.Center) {
@@ -117,6 +200,7 @@ fun DownloadsScreen(
                                 url = entity.savedPath,    // The local file path
                                 album = entity.album,
                                 year = entity.year,
+                                extensionName = entity.extensionName,
                                 composer = entity.composer,
                                 genre = entity.genre
                             )
@@ -153,14 +237,12 @@ fun DownloadItemCard(
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
-            // 1. Beautiful Blurred Background
             AsyncImage(
                 model = entity.artworkUrl,
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize().blur(30.dp, BlurredEdgeTreatment.Unbounded)
             )
-            // Overlay to darken the blur so text is readable
             Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.65f)))
             Row(
                 modifier = Modifier.fillMaxSize().padding(12.dp),
@@ -194,7 +276,7 @@ fun DownloadItemCard(
                         modifier = Modifier.padding(top = 4.dp)
                     ) {
                         Text(
-                            text = entity.comment.replace("Veena: ", ""),
+                            text = entity.extensionName ?: entity.comment.replace("Veena: ", ""),
                             style = MaterialTheme.typography.labelSmall,
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
                             color = MaterialTheme.colorScheme.onPrimaryContainer

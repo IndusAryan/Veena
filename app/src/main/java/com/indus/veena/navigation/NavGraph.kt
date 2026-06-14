@@ -15,8 +15,9 @@ import com.indus.veena.models.SongModel
 import com.indus.veena.ui.screens.addons.AddonsScreen
 import com.indus.veena.ui.screens.debugmenu.DebugBackupScreen
 import com.indus.veena.ui.screens.downloads.DownloadsScreen
+import com.indus.veena.ui.screens.favourites.FavouritesScreen
 import com.indus.veena.ui.screens.home.HomeScreen
-import com.indus.veena.ui.screens.player.PlayerViewModel
+import com.indus.veena.ui.screens.player.PlayerState
 import com.indus.veena.ui.screens.settings.SettingsScreen
 import com.indus.veena.ui.screens.splash.VolumetricSplashScreen
 import com.indus.veena.util.popCurrentPage
@@ -25,7 +26,7 @@ import com.indus.veena.util.popCurrentPage
 fun NavGraph(
     navController: NavHostController,
     paddingValues: PaddingValues,
-    playerState: PlayerViewModel.PlayerState,
+    playerState: PlayerState,
     dominantColor: Color?,
     onSongSelected: (SongModel) -> Unit
 ) {
@@ -60,7 +61,16 @@ fun NavGraph(
             DownloadsScreen(
                 paddingValues = paddingValues,
                 onSongClick = { song -> onSongSelected(song) },
-                onBackClick = navController::popCurrentPage)
+                onBackClick = navController::popCurrentPage,
+                onShowAllFavourites = { navController.navigate(Screen.Favourites) }
+            )
+        }
+        composable<Screen.Favourites> {
+            FavouritesScreen(
+                paddingValues = paddingValues,
+                onBackClick = navController::popCurrentPage,
+                onSongClick = { song -> onSongSelected(song) }
+            )
         }
         composable<Screen.DebugScreen> { DebugBackupScreen() }
     }

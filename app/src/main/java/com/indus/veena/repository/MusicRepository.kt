@@ -80,7 +80,7 @@ class MusicRepository @Inject constructor(
     suspend fun searchSongs(query: String, providerName: String): List<SongModel> = withContext(Dispatchers.IO) {
         val extension = extensionManager.getById(providerName) ?: return@withContext emptyList()
         return@withContext try {
-            extension.addon.searchSongs(query).map { it.toSongModel(providerName) }
+            extension.addon.searchSongs(query).map { it.toSongModel(providerName, extension.manifest.name) }
         } catch (e: Exception) {
             Log.e(TAG, "Search failed", e)
             emptyList()
@@ -90,7 +90,7 @@ class MusicRepository @Inject constructor(
     suspend fun getSongDetails(id: String, providerName: String): SongModel? = withContext(Dispatchers.IO) {
         val extension = extensionManager.getById(providerName) ?: return@withContext null
         return@withContext try {
-            extension.addon.getSongDetails(id).toSongModel(providerName)
+            extension.addon.getSongDetails(id).toSongModel(providerName, extension.manifest.name)
         } catch (e: Exception) {
             null
         }
@@ -138,7 +138,7 @@ class MusicRepository @Inject constructor(
         }
     }
 
-    private fun ExtSong.toSongModel(provider: String): SongModel {
+    private fun ExtSong.toSongModel(provider: String, extensionName: String): SongModel {
         return SongModel(
             id = this.id,
             title = this.title,
@@ -147,6 +147,7 @@ class MusicRepository @Inject constructor(
             duration = this.duration,
             streamableUrls = this.streamableUrls ?: emptyMap(),
             provider = provider,
+            extensionName = extensionName,
             url = this.url,
             album = this.album,
             albumArtist = this.albumArtist,

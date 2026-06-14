@@ -56,7 +56,7 @@ fun FloatingBottomBar(navController: NavHostController, hazeState: HazeState) {
         listOf(
             BottomNavItem("Home", R.drawable.ic_home, Screen.Home, Color(0xFF56CCF2)),
           //  BottomNavItem("Trending", Icons.Default.Whatshot, Screen.Trending, Color(0xFFFF5F6D)),
-            BottomNavItem("Downloads", R.drawable.ic_downloads, Screen.Downloads, Color(0xFFBB86FC)),
+            BottomNavItem("Downloads", R.drawable.ic_music_library, Screen.Downloads, Color(0xFFBB86FC)),
             BottomNavItem("Settings", R.drawable.ic_setting, Screen.Settings, Color(0xFF6FCF97))
         )
     }

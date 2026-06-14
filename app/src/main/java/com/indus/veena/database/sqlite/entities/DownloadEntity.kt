@@ -12,6 +12,7 @@ data class DownloadEntity(
     val title: String,
     val url: String,
     val artworkUrl: String,
+    val extensionName: String = "",
     @ColumnInfo(typeAffinity = ColumnInfo.BLOB)
     val artworkData: ByteArray? = null,
     val customHeaders: String, // Stored as JSON or simple key:val,key:val string

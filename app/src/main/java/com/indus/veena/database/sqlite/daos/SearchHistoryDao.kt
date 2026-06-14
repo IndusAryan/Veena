@@ -5,6 +5,7 @@ import androidx.room3.Insert
 import androidx.room3.Query
 import com.indus.veena.database.sqlite.entities.SearchHistoryEntity
 import kotlinx.coroutines.flow.Flow
+import androidx.room3.OnConflictStrategy
 
 @Dao
 interface SearchHistoryDao {
@@ -14,7 +15,7 @@ interface SearchHistoryDao {
     @Query("SELECT * FROM search_history")
     suspend fun getAllHistoryList(): List<SearchHistoryEntity>
 
-    @Insert
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertHistory(item: SearchHistoryEntity)
 
     @Insert

@@ -2,6 +2,8 @@ package com.indus.veena
 
 import android.os.Build
 import android.os.Bundle
+import android.widget.Toast
+import android.widget.Toast.LENGTH_SHORT
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
@@ -36,14 +38,19 @@ import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import coil3.ImageLoader
+import coil3.SingletonImageLoader
+import coil3.compose.setSingletonImageLoaderFactory
+import coil3.request.crossfade
 import com.indus.veena.database.DataStoreKeys
+import com.indus.veena.helpers.ImageModuleCoil
 import com.indus.veena.navigation.FloatingBottomBar
 import com.indus.veena.navigation.NavGraph
 import com.indus.veena.navigation.Screen
 import com.indus.veena.ui.screens.player.FullPlayerOverlay
 import com.indus.veena.ui.screens.player.MiniPlayer
+import com.indus.veena.ui.screens.player.PlayerDisplayMode
 import com.indus.veena.ui.screens.player.PlayerViewModel
-import com.indus.veena.ui.screens.player.PlayerViewModel.PlayerDisplayMode
 import com.indus.veena.ui.screens.settings.SettingsViewModel
 import com.indus.veena.ui.theme.VeenaTheme
 import dagger.hilt.android.AndroidEntryPoint
@@ -92,10 +99,8 @@ class MainActivity : ComponentActivity() {
                 val hazeState = remember { HazeState() }
 
                 val shouldShowBottomBar = currentDestination?.hierarchy?.any { dest ->
-                    dest.hasRoute(Screen.Home::class) ||
-                            dest.hasRoute(Screen.Trending::class) ||
-                            dest.hasRoute(Screen.Settings::class) ||
-                            dest.hasRoute(Screen.Downloads::class)
+                    dest.hasRoute(Screen.Home::class) || dest.hasRoute(Screen.Trending::class) ||
+                    dest.hasRoute(Screen.Settings::class) || dest.hasRoute(Screen.Downloads::class)
                 } == true
 
                 Scaffold(
@@ -119,7 +124,7 @@ class MainActivity : ComponentActivity() {
                                         )
                                     )
                                     .navigationBarsPadding()
-                                    .padding(bottom = 16.dp), // Increased padding to move it up
+                                    .padding(bottom = 16.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
                                 AnimatedVisibility(
@@ -166,7 +171,13 @@ class MainActivity : ComponentActivity() {
                             playerState = playerState,
                             dominantColor = if (playerState.isPlaying) playerState.dominantColor else currentAccent.color,
                             onSongSelected = { song ->
-                                playerViewModel.playSong(song)
+                                playerViewModel.playSong(song) { toastMsg ->
+                                    Toast.makeText(
+                                        applicationContext,
+                                        toastMsg,
+                                        LENGTH_SHORT
+                                    ).show()
+                                }
                                 playerViewModel.setDisplayMode(PlayerDisplayMode.FULL)
                             }
                         )
@@ -184,6 +195,7 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             }
+            SingletonImageLoader.setSafe { ImageModuleCoil.buildImageLoader(applicationContext) }
         }
     }
 }

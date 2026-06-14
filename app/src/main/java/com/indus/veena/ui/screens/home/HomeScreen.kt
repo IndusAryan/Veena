@@ -124,13 +124,13 @@ import com.indus.veena.database.sqlite.entities.DownloadEntity
 import com.indus.veena.database.sqlite.entities.DownloadState
 import com.indus.veena.models.SongModel
 import com.indus.veena.repository.MusicRepository
-import com.indus.veena.ui.screens.player.PlayerViewModel
+import com.indus.veena.ui.screens.player.PlayerState
 
 @Composable
 fun HomeScreen(
     paddingValues: PaddingValues,
     onSongClick: (SongModel) -> Unit,
-    playerState: PlayerViewModel.PlayerState,
+    playerState: PlayerState,
     playerDominantColor: Color? = Color.Unspecified,
     viewModel: HomeViewModel = hiltViewModel()
 ) {
@@ -143,7 +143,6 @@ fun HomeScreen(
 
     val state = uiState as? HomeUiState.Ready ?: return
 
-    // Safely parse Accent Color ensuring it never drops to black dynamically
     val defaultPrimary = MaterialTheme.colorScheme.primary
     val safeAccentColor = remember(playerDominantColor, defaultPrimary) {
         playerDominantColor?.takeIf {
@@ -188,7 +187,7 @@ private fun HomeScreenContent(
     downloads: List<DownloadEntity>,
     providerNames: List<MusicRepository.ProviderItem>,
     safeAccentColor: Color,
-    playerState: PlayerViewModel.PlayerState,
+    playerState: PlayerState,
     onSongClick: (SongModel) -> Unit,
     onDownloadSong: (SongModel) -> Unit,
     onTogglePause: (String, Boolean) -> Unit,
@@ -485,7 +484,18 @@ fun SearchBar(
             .animateContentSize(animationSpec = tween(300, easing = FastOutSlowInEasing))
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp).padding(horizontal = 16.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 56.dp)
+                .clickable(
+                    interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
+                    indication = null,
+                    enabled = !active
+                ) {
+                    onActiveChange(true)
+                    focusRequester.requestFocus()
+                }
+                .padding(horizontal = 16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             if (active) {
@@ -809,12 +819,34 @@ fun SearchContent(
     onDeleteHistory: (String) -> Unit,
     onClearHistory: () -> Unit
 ) {
+    var showClearConfirm by remember { mutableStateOf(false) }
+
+    if (showClearConfirm) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { showClearConfirm = false },
+            title = { Text("Clear Search History") },
+            text = { Text("Are you sure you want to clear all search history? This cannot be undone.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    onClearHistory()
+                    showClearConfirm = false
+                }) {
+                    Text("Clear All", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showClearConfirm = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(16.dp)
     ) {
-        // Show history when query is empty
         if (query.isEmpty() && history.isNotEmpty()) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -827,7 +859,7 @@ fun SearchContent(
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                TextButton(onClick = onClearHistory) {
+                TextButton(onClick = { showClearConfirm = true }) {
                     Text("Clear All", style = MaterialTheme.typography.bodySmall)
                 }
             }
