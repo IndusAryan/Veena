@@ -2,10 +2,10 @@ package com.indus.veena.service
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.content.ContentResolver
 import android.content.ContentValues
 import android.content.Context
 import android.content.pm.ServiceInfo
-import android.media.MediaScannerConnection
 import android.net.Uri
 import android.os.Build
 import android.os.Environment
@@ -38,15 +38,14 @@ import com.kyant.taglib.TagLib
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.File
+import java.io.FileOutputStream
 import java.io.IOException
-import java.io.RandomAccessFile
 import java.util.Locale
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.coroutines.resume
@@ -64,42 +63,26 @@ class DownloadWorker @AssistedInject constructor(
     private val channelId = "download_channel"
     private val notificationId = inputData.getString(KEY_SONG_ID)?.hashCode() ?: 100
     private val TAG = "DownloadWorker"
+    // Sub-folder name under Downloads, e.g. "Downloads/Veena"
+    private val publicSubDir get() = context.getString(R.string.app_name)
+
+
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
         val songId = inputData.getString(KEY_SONG_ID) ?: return@withContext Result.failure()
         val downloadEntity = downloadDao.getDownload(songId) ?: return@withContext Result.failure()
+        // Sanitize for filesystem use — songId itself may be a URL (e.g. "https://...")
+        val safeSongId = songId.replace(Regex("[\\\\/:*?\"<>|]"), "_")
 
         createNotificationChannel()
         setForeground(createForegroundInfo(downloadEntity.title, downloadEntity.progress))
 
-        val veenaDir = File(context.getExternalFilesDir(Environment.DIRECTORY_MUSIC), "")
-        if (!veenaDir.exists()) veenaDir.mkdirs()
+        val workDir = File(context.cacheDir, "downloads").apply { if (!exists()) mkdirs() }
 
-        // Fixes the empty title and hidden file Scoped Storage crash
-        val rawTitle = downloadEntity.title.ifEmpty { "Unknown_Song_$songId" }
+        val rawTitle = downloadEntity.title.ifEmpty { "Unknown_Song_$safeSongId" }
         val safeTitle = rawTitle.replace(Regex("[\\\\/:*?\"<>|]"), "_")
 
-        var file = File(veenaDir, "$safeTitle.m4a")
-        if (!file.exists()) {
-            val mp3File = File(veenaDir, "$safeTitle.mp3")
-            if (mp3File.exists()) file = mp3File
-            else {
-                val webmFile = File(veenaDir, "$safeTitle.webm")
-                if (webmFile.exists()) file = webmFile
-            }
-        }
-
-        val downloadedBytes = if (file.exists()) file.length() else 0L
-        VeenaLog.d(
-            TAG,
-            "STAGE 1: Worker Started for [$safeTitle]. Target: ${file.name}. Resuming from bytes: $downloadedBytes"
-        )
-
         val requestBuilder = Request.Builder().url(downloadEntity.url)
-        if (downloadedBytes > 0) {
-            requestBuilder.addHeader("Range", "bytes=$downloadedBytes-")
-        } else {
-            requestBuilder.addHeader("Range", "bytes=0-")
-        }
+        requestBuilder.addHeader("Range", "bytes=0-")
         downloadEntity.customHeaders.split(";").filter { it.isNotEmpty() }.forEach {
             val parts = it.split(":", limit = 2)
             if (parts.size == 2) requestBuilder.addHeader(parts[0].trim(), parts[1].trim())
@@ -110,11 +93,6 @@ class DownloadWorker @AssistedInject constructor(
             val response = okHttpClient.newCall(requestBuilder.build()).execute()
 
             if (!response.isSuccessful) {
-                if (response.code == 416 && downloadedBytes > 0) {
-                    // Start conversion if we resumed a fully downloaded WebM
-                    handleConversionAndFinish(songId, file, safeTitle, veenaDir, downloadEntity)
-                    return@withContext Result.success()
-                }
                 throw IOException("Unexpected code $response")
             }
 
@@ -129,37 +107,26 @@ class DownloadWorker @AssistedInject constructor(
                 contentType.contains("audio/mpeg") -> ".mp3"
                 else -> ".m4a"
             }
-            val finalFile = getUniqueFile(veenaDir, safeTitle, extension)
-            VeenaLog.d(
-                TAG,
-                "STAGE 2: Received Network Response. MIME: $contentType, Ext: $extension"
-            )
-
-            if (file.exists() && file.absolutePath != finalFile.absolutePath) {
-                file.renameTo(finalFile)
-                file = finalFile
-            } else {
-                file = finalFile
-            }
+            val workingFile = File(workDir, "${safeSongId}_raw$extension")
 
             val body = response.body
-            val totalBytes = downloadedBytes + body.contentLength()
+            val totalBytes = body.contentLength()
 
-            RandomAccessFile(file, "rw").use { randomAccessFile ->
-                randomAccessFile.seek(downloadedBytes)
+            FileOutputStream(workingFile).use { fos ->
                 body.byteStream().use { inputStream ->
                     val buffer = ByteArray(8 * 1024)
                     var bytesRead: Int
-                    var currentDownloaded = downloadedBytes
+                    var currentDownloaded = 0L
                     var lastUpdate = System.currentTimeMillis()
 
                     while (inputStream.read(buffer).also { bytesRead = it } != -1) {
                         ensureActive()
-                        randomAccessFile.write(buffer, 0, bytesRead)
+                        fos.write(buffer, 0, bytesRead)
                         currentDownloaded += bytesRead
 
                         if (System.currentTimeMillis() - lastUpdate > 500) {
-                            val progress = ((currentDownloaded * 100) / totalBytes).toInt()
+                            val progress = if (totalBytes > 0)
+                                ((currentDownloaded * 100) / totalBytes).toInt() else 0
                             downloadDao.updateProgress(
                                 songId,
                                 progress,
@@ -174,21 +141,10 @@ class DownloadWorker @AssistedInject constructor(
                 }
             }
 
-            VeenaLog.d(
-                TAG,
-                "STAGE 3: Network download complete. File saved to: ${file.absolutePath}"
-            )
-            downloadDao.updateProgress(
-                songId,
-                100,
-                totalBytes,
-                totalBytes,
-                DownloadState.DOWNLOADING
-            )
-            // Hand off to Transformer and Tagging
-            handleConversionAndFinish(songId, file, safeTitle, veenaDir, downloadEntity)
+            VeenaLog.d(TAG, "STAGE 3: Download complete. Cached at: ${workingFile.absolutePath}")
+            downloadDao.updateProgress(songId, 100, totalBytes, totalBytes, DownloadState.DOWNLOADING)
+            handleConversionAndFinish(songId, safeSongId, workingFile, safeTitle, workDir, downloadEntity)
             return@withContext Result.success()
-
         } catch (e: CancellationException) {
             VeenaLog.d(TAG, "STAGE 3.1: Download paused/cancelled for [${downloadEntity.title}]")
             downloadDao.updateState(songId, DownloadState.PAUSED)
@@ -209,76 +165,152 @@ class DownloadWorker @AssistedInject constructor(
 
     private suspend fun handleConversionAndFinish(
         songId: String,
+        safeSongId: String,
         currentFile: File,
         safeTitle: String,
-        dir: File,
+        workDir: File,
         entity: DownloadEntity
     ) {
-        var finalWorkingFile = currentFile
         val ext = currentFile.extension.lowercase()
 
-        // Normalize WebM (Transcode) AND M4A (Remux/Standardize)
-        // This fixes the "Unknown Tags" and corruption in M4A files
-        if (ext == "webm" || ext == "m4a") {
-            val typeLabel = if (ext == "webm") "WebM (Converting)" else "M4A (Normalizing)"
-            VeenaLog.d(TAG, "STAGE 3.5: $typeLabel for [${entity.title}]...")
+        // Normalize WebM (Transcode) AND M4A (Remux/Standardize) — all still in cacheDir.
+        VeenaLog.d(TAG, "STAGE 3.5: Normalizing/Converting for [${entity.title}]...")
+        val tempFile = File(workDir, "${safeSongId}_out.m4a")
+        val success = transcodeWebmToM4a(context, currentFile.absolutePath, tempFile.absolutePath)
 
-            // We use a hidden ".tmp" extension so it doesn't show up in music players mid-process
-            val tempFile = File(dir, "${safeTitle}.tmp")
-            val cleanFinalFile = File(dir, "${safeTitle}.m4a")
-            val success =
-                transcodeWebmToM4a(context, currentFile.absolutePath, tempFile.absolutePath)
-            if (success && tempFile.exists()) {
-                VeenaLog.d(TAG, "STAGE 3.6: Standardization Successful. Cleaning up...")
-                // Delete the raw/original file (e.g., the .webm)
-                currentFile.delete()
-                // Rename the temp file to the proper clean name (e.g., "Song Title.m4a")
-                finalWorkingFile = if (tempFile.renameTo(cleanFinalFile)) {
-                    cleanFinalFile
-                } else {
-                    // Fallback if rename fails
-                    tempFile
-                }
-                delay(300)
-            }
+        val finalWorkingFile: File = if (success && tempFile.exists()) {
+            VeenaLog.d(TAG, "STAGE 3.6: Standardization Successful.")
+            currentFile.delete()
+            tempFile
+        } else if (ext == "m4a" || ext == "mp3") {
+            // Transcode failed but original is already a usable container — fall back to it.
+            VeenaLog.d(TAG, "STAGE 3.6: Transcode skipped/failed, using original container.")
+            currentFile
+        } else {
+            VeenaLog.e(TAG, "STAGE 3.6: Transcode failed and source format unusable.")
+            downloadDao.updateState(songId, DownloadState.FAILED)
+            return
         }
-        finishDownload(songId, finalWorkingFile.absolutePath, entity)
+
+        // Tag the file while it's still a plain cache file — full random read/write access.
+        tagId3Data(finalWorkingFile, entity)
+
+        // Publish to public Downloads/<AppName>/ via MediaStore.
+        val publishedUri = publishToDownloads(finalWorkingFile, safeTitle, songId)
+        finalWorkingFile.delete()
+
+        if (publishedUri == null) {
+            VeenaLog.e(TAG, "ERROR: Failed to publish file to MediaStore")
+            downloadDao.updateState(songId, DownloadState.FAILED)
+            return
+        }
+
+        finishDownload(songId, publishedUri, entity)
     }
 
-    private suspend fun finishDownload(songId: String, path: String, entity: DownloadEntity) {
-        val file = File(path)
-        if (!file.exists()) return
-        downloadDao.updateProgress(
-            songId,
-            100,
-            entity.totalBytes,
-            entity.totalBytes,
-            DownloadState.COMPLETED
-        )
+    /**
+     * Copies the finished, tagged file into the public Downloads/<AppName>/ directory
+     * via MediaStore. Works on all API levels without WRITE_EXTERNAL_STORAGE or
+     * MANAGE_EXTERNAL_STORAGE, since the app is only writing a file it created itself.
+     */
+    private fun publishToDownloads(sourceFile: File, safeTitle: String, songId: String): Uri? {
+        val resolver = context.contentResolver
+        val displayName = getUniqueDisplayName(resolver, safeTitle)
+
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val values = ContentValues().apply {
+                put(MediaStore.Downloads.DISPLAY_NAME, displayName)
+                put(MediaStore.Downloads.MIME_TYPE, "audio/mp4")
+                put(MediaStore.Downloads.RELATIVE_PATH, "${Environment.DIRECTORY_DOWNLOADS}/$publicSubDir")
+                put(MediaStore.Downloads.IS_PENDING, 1)
+            }
+            val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values) ?: return null
+
+            try {
+                resolver.openOutputStream(uri)?.use { out ->
+                    sourceFile.inputStream().use { it.copyTo(out) }
+                } ?: return null
+
+                values.clear()
+                values.put(MediaStore.Downloads.IS_PENDING, 0)
+                resolver.update(uri, values, null, null)
+                uri
+            } catch (e: Exception) {
+                VeenaLog.e(TAG, "Failed to publish file", e)
+                resolver.delete(uri, null, null)
+                null
+            }
+        } else {
+            // Pre-Q: write directly to the public Downloads dir. This is allowed without
+            // any runtime permission because WRITE_EXTERNAL_STORAGE is normal-protection
+            // and granted at install time on API < 29 (and irrelevant on API < 19).
+            @Suppress("DEPRECATION")
+            val downloadsDir = File(
+                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
+                publicSubDir
+            )
+            if (!downloadsDir.exists()) downloadsDir.mkdirs()
+            val destFile = File(downloadsDir, displayName)
+            try {
+                sourceFile.inputStream().use { input ->
+                    destFile.outputStream().use { output -> input.copyTo(output) }
+                }
+                val values = ContentValues().apply {
+                    put(MediaStore.Audio.Media.DATA, destFile.absolutePath)
+                    put(MediaStore.Audio.Media.DISPLAY_NAME, displayName)
+                    put(MediaStore.Audio.Media.MIME_TYPE, "audio/mp4")
+                }
+                resolver.insert(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, values)
+                    ?: Uri.fromFile(destFile)
+            } catch (e: Exception) {
+                VeenaLog.e(TAG, "Failed to publish file (pre-Q)", e)
+                null
+            }
+        }
+    }
+
+    /** Avoids collisions in the target dir by appending " (1)", " (2)", etc. */
+    private fun getUniqueDisplayName(resolver: ContentResolver, baseName: String): String {
+        var candidate = "$baseName.m4a"
+        var counter = 1
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val collection = MediaStore.Downloads.EXTERNAL_CONTENT_URI
+            while (true) {
+                val cursor = resolver.query(
+                    collection,
+                    arrayOf(MediaStore.Downloads._ID),
+                    "${MediaStore.Downloads.DISPLAY_NAME}=? AND ${MediaStore.Downloads.RELATIVE_PATH}=?",
+                    arrayOf(candidate, "${Environment.DIRECTORY_DOWNLOADS}/$publicSubDir/"),
+                    null
+                )
+                val exists = cursor?.use { it.count > 0 } ?: false
+                if (!exists) break
+                candidate = "$baseName ($counter).m4a"
+                counter++
+            }
+        } else {
+            @Suppress("DEPRECATION")
+            val dir = File(
+                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
+                publicSubDir
+            )
+            while (File(dir, candidate).exists()) {
+                candidate = "$baseName ($counter).m4a"
+                counter++
+            }
+        }
+        return candidate
+    }
+
+    private suspend fun finishDownload(songId: String, publishedUri: Uri, entity: DownloadEntity) {
+        downloadDao.updateProgress(songId, 100, entity.totalBytes, entity.totalBytes, DownloadState.COMPLETED)
         downloadDao.insertOrUpdate(
             entity.copy(
-                savedPath = path,
+                savedPath = publishedUri.toString(),
                 state = DownloadState.COMPLETED,
                 progress = 100
             )
         )
-        tagId3Data(path, entity)
-        val now = System.currentTimeMillis()
-        file.setLastModified(now)
-        MediaScannerConnection.scanFile(context, arrayOf(file.absolutePath), null) { _, uri ->
-            if (uri != null) {
-                try {
-                    val values = ContentValues().apply {
-                        put(MediaStore.MediaColumns.DATE_MODIFIED, now / 1000)
-                        put(MediaStore.MediaColumns.DATE_ADDED, now / 1000)
-                    }
-                    context.contentResolver.update(uri, values, null, null)
-                    VeenaLog.d(TAG, "MediaStore Date Updated for: ${file.name}")
-                } catch (e: Exception) {
-                    VeenaLog.e(TAG, "Failed to update MediaStore timestamp", e)
-                }
-            }
-        }
 
         notificationManager.notify(
             notificationId,
@@ -290,11 +322,10 @@ class DownloadWorker @AssistedInject constructor(
         )
     }
 
-    private suspend fun tagId3Data(filePath: String, entity: DownloadEntity) {
+    private suspend fun tagId3Data(file: File, entity: DownloadEntity) {
         withContext(Dispatchers.IO) {
             try {
                 VeenaLog.d(TAG, "STAGE 4: Starting ID3 Tagging for [${entity.title}]")
-                val file = File(filePath)
                 var pictureData: ByteArray? = entity.artworkData
                 var mimeType = "image/jpeg"
 
@@ -451,16 +482,6 @@ class DownloadWorker @AssistedInject constructor(
                 }
             }
         }
-    }
-
-    private fun getUniqueFile(dir: File, baseName: String, extension: String): File {
-        var file = File(dir, "$baseName$extension")
-        var counter = 1
-        while (file.exists()) {
-            file = File(dir, "$baseName ($counter)$extension")
-            counter++
-        }
-        return file
     }
 
     private fun createNotificationChannel() {

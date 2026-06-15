@@ -153,7 +153,7 @@ fun HomeScreen(
 
     LaunchedEffect(state.uiState.errorMessage) {
         state.uiState.errorMessage?.let { message ->
-            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, message, Toast.LENGTH_LONG).show()
             viewModel.clearError()
         }
     }
