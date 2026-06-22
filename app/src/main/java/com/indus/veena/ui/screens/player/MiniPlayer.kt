@@ -45,6 +45,7 @@ import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.HazeTint
 import dev.chrisbanes.haze.hazeChild
+import dev.chrisbanes.haze.hazeEffect
 
 @Composable
 fun MiniPlayer(
@@ -71,13 +72,20 @@ fun MiniPlayer(
             .height(68.dp)
             .clip(RoundedCornerShape(22.dp))
             .clickable { onExpand() }
-            .hazeChild(
+            .hazeEffect(
                 state = hazeState,
                 style = HazeStyle(
                     tint = HazeTint(Color.Black.copy(alpha = 0.45f)),
                     blurRadius = 25.dp
                 )
             )
+            /*.hazeChild(
+                state = hazeState,
+                style = HazeStyle(
+                    tint = HazeTint(Color.Black.copy(alpha = 0.45f)),
+                    blurRadius = 25.dp
+                )
+            )*/
             .border(0.5.dp, Color.White.copy(alpha = 0.15f), RoundedCornerShape(22.dp))
     ) {
         Box(

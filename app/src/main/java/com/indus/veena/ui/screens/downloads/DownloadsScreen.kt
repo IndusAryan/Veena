@@ -60,6 +60,7 @@ import com.indus.veena.database.sqlite.entities.DownloadEntity
 import com.indus.veena.database.sqlite.entities.DownloadState
 import com.indus.veena.models.Provider
 import com.indus.veena.models.SongModel
+import com.indus.veena.ui.screens.favourites.FavouritesViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -69,7 +70,7 @@ fun DownloadsScreen(
     onSongClick: (SongModel) -> Unit,
     onShowAllFavourites: () -> Unit,
     viewModel: DownloadsViewModel = hiltViewModel(),
-    favViewModel: com.indus.veena.ui.screens.favourites.FavouritesViewModel = hiltViewModel()
+    favViewModel: FavouritesViewModel = hiltViewModel()
 ) {
     val downloads by viewModel.downloads.collectAsStateWithLifecycle()
     val favourites by favViewModel.favourites.collectAsStateWithLifecycle(emptyList())
@@ -101,7 +102,7 @@ fun DownloadsScreen(
                     ) {
                         Text(
                             "Favourites",
-                            style = MaterialTheme.typography.titleLarge,
+                            style = MaterialTheme.typography.titleMediumEmphasized,
                             fontWeight = FontWeight.Bold
                         )
                         TextButton(onClick = onShowAllFavourites) {
@@ -155,7 +156,7 @@ fun DownloadsScreen(
                                             ))
                                         },
                                         onTogglePause = {},
-                                        onCancel = {}
+                                        onCancel = { favViewModel.removeFavourite(fav.songId) }
                                     )
                                 }
                             }
@@ -167,7 +168,7 @@ fun DownloadsScreen(
             item {
                 Text(
                     "Downloads",
-                    style = MaterialTheme.typography.titleLarge,
+                    style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(vertical = 8.dp)
                 )
@@ -231,7 +232,7 @@ fun DownloadItemCard(
 
     Card(
         modifier = Modifier.fillMaxWidth().height(110.dp),
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(14.dp),
         onClick = { if (entity.state == DownloadState.COMPLETED) onCardClick() },
         colors = CardDefaults.cardColors(containerColor = containerColor),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)

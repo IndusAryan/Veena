@@ -4,6 +4,7 @@ import android.net.Uri
 import android.util.Log
 import androidx.compose.runtime.Stable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.lifecycle.ViewModel
@@ -136,7 +137,16 @@ class PlayerViewModel @Inject constructor(
 
             if (song.provider == Provider.LOCAL.name) {
                 VeenaLog.d(TAG, "STAGE 2: Detected LOCAL song. Playing from path: ${song.url}")
-                val uri = Uri.fromFile(File(song.url)).toString()
+                val uri = when {
+                    song.url.startsWith("content://") ->
+                        song.url
+
+                    song.url.startsWith("file://") ->
+                        song.url
+
+                    else ->
+                        Uri.fromFile(File(song.url)).toString()
+                }
                 musicController.playSong(uri, song)
                 VeenaLog.d(TAG, "STAGE 3: Local Playback Started.")
                 return@launch
@@ -186,7 +196,8 @@ class PlayerViewModel @Inject constructor(
     }
 
     fun updateDominantColor(color: Color) {
-        VeenaLog.d(TAG, "Dominant Color: $color")
+        val hex = String.format("#%08X", color.toArgb())
+        VeenaLog.d(TAG, "Dominant Color Hex: $hex")
         _uiState.update { it.copy(dominantColor = color) }
     }
 

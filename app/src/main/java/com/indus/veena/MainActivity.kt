@@ -2,6 +2,7 @@ package com.indus.veena
 
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.widget.Toast
 import android.widget.Toast.LENGTH_SHORT
 import androidx.activity.ComponentActivity
@@ -93,12 +94,16 @@ class MainActivity : ComponentActivity() {
                 darkTheme = useDarkTheme,
                 accent = currentAccent
             ) {
+                val themePrimary = androidx.compose.material3.MaterialTheme.colorScheme.primary
+                LaunchedEffect(themePrimary) {
+                    val hex = String.format("#%08X", themePrimary.toArgb())
+                    Log.d("VeenaTheme", "Active Theme Primary Color (Hex): $hex")
+                }
                 LaunchedEffect(Unit) {
                     playerViewModel.toastEvent.collectLatest { message ->
                         Toast.makeText(this@MainActivity, message, Toast.LENGTH_SHORT).show()
                     }
                 }
-
                 val navController = rememberNavController()
                 val navBackStackEntry by navController.currentBackStackEntryAsState()
                 val currentDestination = navBackStackEntry?.destination

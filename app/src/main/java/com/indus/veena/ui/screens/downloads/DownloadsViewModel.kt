@@ -1,9 +1,10 @@
 package com.indus.veena.ui.screens.downloads
 
-
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.indus.veena.database.sqlite.daos.FavouriteDao
 import com.indus.veena.di.DownloadManager
+import com.indus.veena.lifecycle.ioScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn

@@ -29,19 +29,28 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.indus.veena.database.sqlite.daos.FavouriteDao
 import com.indus.veena.database.sqlite.entities.DownloadEntity
 import com.indus.veena.database.sqlite.entities.DownloadState
+import com.indus.veena.lifecycle.ioScope
 import com.indus.veena.models.SongModel
 import com.indus.veena.ui.screens.downloads.DownloadItemCard
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class FavouritesViewModel @Inject constructor(
-    favouriteDao: FavouriteDao
+    private val favouriteDao: FavouriteDao
 ) : ViewModel() {
     val favourites = favouriteDao.getAllFavourites()
+
+    fun removeFavourite(songId: String) {
+        ioScope {
+            favouriteDao.deleteBySongId(songId)
+        }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -111,6 +120,7 @@ fun FavouritesScreen(
                             thumbnail = fav.thumbnail,
                             duration = fav.duration,
                             url = fav.url,
+                            extensionName = fav.extensionName,
                             provider = fav.provider,
                             album = fav.album,
                             year = fav.year,
@@ -119,7 +129,7 @@ fun FavouritesScreen(
                         ))
                     },
                     onTogglePause = {},
-                    onCancel = {}
+                    onCancel = { viewModel.removeFavourite(fav.songId) }
                 )
             }
         }

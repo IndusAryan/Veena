@@ -221,10 +221,12 @@ class DownloadWorker @AssistedInject constructor(
             val values = ContentValues().apply {
                 put(MediaStore.Downloads.DISPLAY_NAME, displayName)
                 put(MediaStore.Downloads.MIME_TYPE, "audio/mp4")
-                put(MediaStore.Downloads.RELATIVE_PATH, "${Environment.DIRECTORY_DOWNLOADS}/$publicSubDir")
+                put(MediaStore.Downloads.RELATIVE_PATH, "${Environment.DIRECTORY_MUSIC}/$publicSubDir")
                 put(MediaStore.Downloads.IS_PENDING, 1)
+                put(MediaStore.Audio.Media.TITLE, safeTitle)
+                put(MediaStore.Audio.Media.IS_MUSIC, 1)
             }
-            val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values) ?: return null
+            val uri = resolver.insert(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, values) ?: return null
 
             try {
                 resolver.openOutputStream(uri)?.use { out ->
@@ -232,7 +234,7 @@ class DownloadWorker @AssistedInject constructor(
                 } ?: return null
 
                 values.clear()
-                values.put(MediaStore.Downloads.IS_PENDING, 0)
+                values.put(MediaStore.Audio.Media.IS_PENDING, 0)
                 resolver.update(uri, values, null, null)
                 uri
             } catch (e: Exception) {
@@ -274,13 +276,16 @@ class DownloadWorker @AssistedInject constructor(
         var candidate = "$baseName.m4a"
         var counter = 1
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            val collection = MediaStore.Downloads.EXTERNAL_CONTENT_URI
+            val collection = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
             while (true) {
                 val cursor = resolver.query(
                     collection,
-                    arrayOf(MediaStore.Downloads._ID),
-                    "${MediaStore.Downloads.DISPLAY_NAME}=? AND ${MediaStore.Downloads.RELATIVE_PATH}=?",
-                    arrayOf(candidate, "${Environment.DIRECTORY_DOWNLOADS}/$publicSubDir/"),
+                    arrayOf(MediaStore.Audio.Media._ID),
+                    "${MediaStore.Audio.Media.DISPLAY_NAME}=? AND ${MediaStore.Audio.Media.RELATIVE_PATH}=?",
+                    arrayOf(
+                        candidate,
+                        "${Environment.DIRECTORY_MUSIC}/$publicSubDir/"
+                    ),
                     null
                 )
                 val exists = cursor?.use { it.count > 0 } ?: false
