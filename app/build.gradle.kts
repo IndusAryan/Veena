@@ -75,6 +75,12 @@ android {
         compose = true
         resValues = true
     }
+
+    // for f-droid reproducible builds
+    dependenciesInfo {
+        includeInApk = false
+        includeInBundle = false
+    }
 }
 
 dependencies {
