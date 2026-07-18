@@ -1,0 +1,12 @@
+Veena (वीणा) is an addon-based music discovery, downloader, and streaming aggregator.
+
+Features:
+- Addon Architecture: Modular system for discovery, streaming, and downloading.
+- Multi-API Support: Search across multiple sources simultaneously using custom addons.
+- Music Downloader: High-quality music downloads with metadata tagging.
+- Powerful Streamer: Seamless streaming experience with ExoPlayer/Media3 integration.
+- Material 3 & Haze: Modern UI with glassmorphic blur effects and dynamic colors.
+- Privacy-Focused: No built-in providers; users control their sources.
+- Local Library: Manage your downloaded music with a built-in library manager.
+
+Veena does not collect any user data or telemetry. As a content aggregator, it relies on user-provided addons. All data exchange happens directly between your device and the service provider defined in the addon.

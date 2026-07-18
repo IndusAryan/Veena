@@ -4,7 +4,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 
 object DataStoreKeys {
     enum class AppTheme {
-        SYSTEM, LIGHT, DARK
+        SYSTEM, LIGHT, DARK, AMOLED
     }
 
     enum class AudioQuality {

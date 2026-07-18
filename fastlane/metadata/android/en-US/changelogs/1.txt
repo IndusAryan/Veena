@@ -1,0 +1,3 @@
+Initial release of Veena.
+- Addon-based music discovery and streaming.
+- Music downloading and metadata tagging.

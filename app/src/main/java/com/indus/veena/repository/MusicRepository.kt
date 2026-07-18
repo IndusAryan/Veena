@@ -1,5 +1,6 @@
 package com.indus.veena.repository
 
+import android.R.attr.country
 import android.content.Context
 import android.util.Log
 import androidx.datastore.core.DataStore
@@ -23,6 +24,7 @@ import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.File
+import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -65,19 +67,6 @@ class MusicRepository @Inject constructor(
 
     private suspend fun syncAndLoadExtensions() {
         val internalDir = File(context.filesDir, "extensions").apply { mkdirs() }
-        //val externalDir = context.getExternalFilesDir("extensions")
-
-        /*externalDir?.listFiles()?.forEach { externalFile ->
-            if (externalFile.extension.lowercase() in listOf("js", "veena")) {
-                val target = File(internalDir, externalFile.name)
-                if (!target.exists() || externalFile.lastModified() > target.lastModified()) {
-                    target.setWritable(true) // reset in case it was previously locked
-                    externalFile.copyTo(target, overwrite = true)
-                    target.setReadOnly() // lock before loader touches it
-                    Log.d(TAG, "Synced: ${externalFile.name}")
-                }
-            }
-        }*/
         internalDir.listFiles()
             ?.filter { it.extension.lowercase() in listOf("js", "veena") }
             ?.forEach { extensionManager.loadFile(it) }
@@ -107,7 +96,7 @@ class MusicRepository @Inject constructor(
         val providerId = prefs[SUGGESTION_PROVIDER_KEY] ?: "itunes"
 
         if (providerId == "itunes") {
-            return@withContext fetchItunesSuggestions(query)
+            return@withContext fetchItunesSuggestions(query, countryCode = Locale.getDefault().country)
         }
 
         val extension = extensionManager.getById(providerId) ?: return@withContext emptyList()
@@ -122,9 +111,9 @@ class MusicRepository @Inject constructor(
         }
     }
 
-    private fun fetchItunesSuggestions(query: String): List<String> {
+    private fun fetchItunesSuggestions(query: String, countryCode: String = "IN"): List<String> {
         if (query.isBlank()) return emptyList()
-        val url = "https://itunes.apple.com/search?term=$query&media=music&limit=25"
+        val url = "https://itunes.apple.com/search?term=$query&media=music&limit=25&country=$countryCode"
         val request = Request.Builder()
             .url(url)
             .header("User-Agent", "iTunes/12.9.5 (Windows; Microsoft Windows 10.0 x64; Edition Professional) AppleWebKit/7606.1002.2005.1 (KHTML, like Gecko)")

@@ -1,0 +1,1 @@
+Addon-based music discovery, downloader and streaming aggregator

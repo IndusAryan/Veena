@@ -365,16 +365,26 @@ private fun paletteFor(accent: VeenaAccent, dark: Boolean): ColorScheme = when (
 @Composable
 fun VeenaTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
+    isAmoled: Boolean = false,
     accent: VeenaAccent = VeenaAccent.MATERIAL_YOU,
     content: @Composable () -> Unit
 ) {
     val context = LocalContext.current
     val view = LocalView.current
-    val colorScheme = remember(darkTheme, accent) {
-        when {
+    val colorScheme = remember(darkTheme, accent, isAmoled) {
+        val base = when {
             accent == VeenaAccent.MATERIAL_YOU && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S ->
                 if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
             else -> paletteFor(accent, darkTheme)
+        }
+        if (darkTheme && isAmoled) {
+            base.copy(
+                background = Color.Black,
+                surface = Color.Black,
+                surfaceVariant = Color(0xFF121212)
+            )
+        } else {
+            base
         }
     }
 

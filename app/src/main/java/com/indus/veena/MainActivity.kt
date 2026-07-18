@@ -88,10 +88,12 @@ class MainActivity : ComponentActivity() {
                 DataStoreKeys.AppTheme.SYSTEM -> isSystemInDarkTheme()
                 DataStoreKeys.AppTheme.LIGHT -> false
                 DataStoreKeys.AppTheme.DARK -> true
+                DataStoreKeys.AppTheme.AMOLED -> true
             }
 
             VeenaTheme(
                 darkTheme = useDarkTheme,
+                isAmoled = currentTheme == DataStoreKeys.AppTheme.AMOLED,
                 accent = currentAccent
             ) {
                 val themePrimary = androidx.compose.material3.MaterialTheme.colorScheme.primary

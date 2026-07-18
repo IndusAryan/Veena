@@ -1,5 +1,7 @@
 package com.indus.veena.ui.screens.settings
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
@@ -29,6 +31,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.ChevronRight
+import androidx.compose.material.icons.outlined.Code
 import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.Extension
@@ -66,6 +69,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.indus.veena.database.DataStoreKeys
 import com.indus.veena.ui.theme.VeenaAccent
+import androidx.core.net.toUri
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -121,7 +125,7 @@ fun SettingsScreen(
                 SettingsRow(
                     icon = Icons.Outlined.DarkMode,
                     title = "App Theme",
-                    subtitle = currentTheme.name.lowercase().replaceFirstChar { it.uppercase() },
+                    subtitle = if (currentTheme == DataStoreKeys.AppTheme.AMOLED) "AMOLED" else currentTheme.name.lowercase().replaceFirstChar { it.uppercase() },
                     onClick = { showThemeDialog = true }
                 )
             }
@@ -236,7 +240,28 @@ fun SettingsScreen(
                     subtitle = "Source: $selectedProviderName",
                     onClick = { showSuggestionDialog = true }
                 )
+                val context = androidx.compose.ui.platform.LocalContext.current
+                SettingsRow(
+                    icon = Icons.Outlined.Code,
+                    title = "GitHub Repository",
+                    subtitle = "View source & contribute",
+                    onClick = {
+                        val intent = Intent(Intent.ACTION_VIEW,
+                            "https://github.com/indusAryan/Veena".toUri())
+                        context.startActivity(intent)
+                    }
+                )
             }
+
+            Spacer(Modifier.height(32.dp))
+
+            Text(
+                text = "Built by IndusAryan \uD83D\uDC2F",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center
+            )
         }
     }
 
@@ -247,7 +272,7 @@ fun SettingsScreen(
             currentSelection = currentTheme,
             onDismiss = { showThemeDialog = false },
             onSelect = { viewModel.setTheme(it) },
-            labelProvider = { it.name.lowercase().replaceFirstChar { c -> c.uppercase() } }
+            labelProvider = { if (it == DataStoreKeys.AppTheme.AMOLED) "AMOLED" else it.name.lowercase().replaceFirstChar { c -> c.uppercase() } }
         )
     }
 
