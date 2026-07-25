@@ -1,3 +1,14 @@
 <resources>
     <string name="app_name">Veena</string>
+    <string name="no_sources_configured">No sources configured</string>
+    <string name="install_addons_description">Install addons to start searching and downloading music</string>
+    <string name="install_addons">Install Addons</string>
+    <string name="search_songs_placeholder">Search songs…</string>
+    <string name="recent_searches">Recent Searches</string>
+    <string name="clear_all">Clear All</string>
+    <string name="suggestions">Suggestions</string>
+    <string name="search_hint">Search for songs, artists, or albums</string>
+    <string name="clear_history_title">Clear Search History</string>
+    <string name="clear_history_message">Are you sure you want to clear all search history? This cannot be undone.</string>
+    <string name="failed_to_load_results">Failed to load results. Please check your connection.</string>
 </resources>

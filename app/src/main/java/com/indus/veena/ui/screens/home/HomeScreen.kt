@@ -126,6 +126,8 @@ import com.indus.veena.models.SongModel
 import com.indus.veena.repository.MusicRepository
 import com.indus.veena.ui.screens.player.PlayerState
 
+import androidx.compose.ui.res.stringResource
+
 @Composable
 fun HomeScreen(
     paddingValues: PaddingValues,
@@ -142,8 +144,6 @@ fun HomeScreen(
     val providerNames by viewModel.availableProviders.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
-    val state = uiState as? HomeUiState.Ready ?: return
-
     val defaultPrimary = MaterialTheme.colorScheme.primary
     val safeAccentColor = remember(playerDominantColor, defaultPrimary) {
         playerDominantColor?.takeIf {
@@ -151,8 +151,13 @@ fun HomeScreen(
         } ?: defaultPrimary
     }
 
-    LaunchedEffect(state.uiState.errorMessage) {
-        state.uiState.errorMessage?.let { message ->
+    LaunchedEffect(uiState.errorMessage) {
+        uiState.errorMessage?.let { errorType ->
+            val message = if (errorType == "FAILED_SEARCH") {
+                context.getString(R.string.failed_to_load_results)
+            } else {
+                errorType
+            }
             Toast.makeText(context, message, Toast.LENGTH_LONG).show()
             viewModel.clearError()
         }
@@ -160,7 +165,7 @@ fun HomeScreen(
 
     HomeScreenContent(
         paddingValues = paddingValues,
-        state = state.uiState,
+        state = uiState,
         suggestions = suggestions,
         searchHistory = searchHistory,
         downloads = downloads,

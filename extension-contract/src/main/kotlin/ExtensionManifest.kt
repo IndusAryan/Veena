@@ -9,14 +9,14 @@ enum class ExtensionType { JS, DEX }
  * Every JS extension file MUST declare this as its first statement:
  *
  *   const MANIFEST = {
- *     id: "saavn",
- *     name: "Saavn",
+ *     id: "addon",
+ *     name: "some_addon",
  *     version: "1.0.0",
  *     apiVersion: 1,
  *     capabilities: ["search", "details", "stream"],
  *     permissions: ["network"],
  *     author: "yourname",
- *     description: "JioSaavn music source"
+ *     description: "music source"
  *   };
  *
  * Kotlin reads this before executing the full script. If the manifest is

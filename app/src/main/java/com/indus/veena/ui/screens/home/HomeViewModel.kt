@@ -1,6 +1,7 @@
 package com.indus.veena.ui.screens.home
 
 import android.content.Context
+import androidx.compose.runtime.Immutable
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.lifecycle.ViewModel
@@ -13,9 +14,13 @@ import com.indus.veena.di.DownloadManager
 import com.indus.veena.helpers.ImageModuleCoil.getCachedArtworkBlob
 import com.indus.veena.helpers.VeenaLog
 import com.indus.veena.lifecycle.ioScope
+import com.indus.veena.lifecycle.updateState
 import com.indus.veena.models.SongModel
 import com.indus.veena.repository.MusicRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.collections.immutable.PersistentList
+import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.toPersistentList
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -24,19 +29,13 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-sealed interface HomeUiState {
-    data object Loading : HomeUiState
-    data class Error(val message: String) : HomeUiState
-    data class Ready(val uiState: HomeContentState) : HomeUiState
-}
-
+@Immutable
 data class HomeContentState(
     val searchQuery: String = "",
-    val searchResults: List<SongModel> = emptyList(),
+    val searchResults: PersistentList<SongModel> = persistentListOf(),
     val isSearchActive: Boolean = false,
     val activeSongId: String = "",
     val selectedProvider: String = "",
@@ -54,11 +53,10 @@ class HomeViewModel @Inject constructor(
 ) : ViewModel() {
     private val TAG = "HomeViewModel"
 
-    private val _uiState = MutableStateFlow<HomeUiState>(
-        HomeUiState.Ready(HomeContentState())
-    )
-    val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
-    private val _suggestions = MutableStateFlow<List<String>>(emptyList())
+    private val _uiState = MutableStateFlow(HomeContentState())
+    val uiState: StateFlow<HomeContentState> = _uiState.asStateFlow()
+
+    private val _suggestions = MutableStateFlow<PersistentList<String>>(persistentListOf())
     val suggestions = _suggestions
 
     val availableProviders = repository.availableProviders.stateIn(
@@ -74,15 +72,14 @@ class HomeViewModel @Inject constructor(
     init {
         ioScope {
             availableProviders.collect { providers ->
-                val currentState = (_uiState.value as? HomeUiState.Ready)?.uiState ?: return@collect
-                if (currentState.selectedProvider.isEmpty() && providers.isNotEmpty()) {
-                    updateContentState { it.copy(selectedProvider = providers.first().id) }
+                if (_uiState.value.selectedProvider.isEmpty() && providers.isNotEmpty()) {
+                    _uiState.updateState { it.copy(selectedProvider = providers.first().id) }
                 }
             }
         }
         ioScope {
             repository.noAddonsAvailable.collect { noAddons ->
-                updateContentState { it.copy(isProvidersEmpty = noAddons) }
+                _uiState.updateState { it.copy(isProvidersEmpty = noAddons) }
             }
         }
     }
@@ -156,15 +153,15 @@ class HomeViewModel @Inject constructor(
     }
 
     fun onProviderSelected(provider: MusicRepository.ProviderItem) {
-        updateContentState { it.copy(selectedProvider = provider.id) }
-        val currentState = (_uiState.value as? HomeUiState.Ready)?.uiState ?: return
+        _uiState.updateState { it.copy(selectedProvider = provider.id) }
+        val currentState = _uiState.value
         if (currentState.searchQuery.isNotBlank()) {
             performSearch(currentState.searchQuery, provider.id)
         }
     }
 
     fun onSearchTriggered() {
-        val currentState = (_uiState.value as? HomeUiState.Ready)?.uiState ?: return
+        val currentState = _uiState.value
         if (currentState.searchQuery.isNotBlank()) {
             performSearch(currentState.searchQuery, currentState.selectedProvider)
             addSearchToHistory(currentState.searchQuery)
@@ -172,16 +169,16 @@ class HomeViewModel @Inject constructor(
     }
 
     fun onQueryChange(newQuery: String) {
-        updateContentState { it.copy(searchQuery = newQuery) }
+        _uiState.updateState { it.copy(searchQuery = newQuery) }
         suggestionJob?.cancel()
         if (newQuery.isNotBlank()) {
             suggestionJob = viewModelScope.launch(Dispatchers.IO) {
                 delay(300)
                 val results = repository.getSuggestions(newQuery)
-                _suggestions.value = results
+                _suggestions.value = results.toPersistentList()
             }
         } else {
-            _suggestions.value = emptyList()
+            _suggestions.value = persistentListOf()
         }
     }
 
@@ -205,10 +202,10 @@ class HomeViewModel @Inject constructor(
 
     fun onClearSearch() {
         searchJob?.cancel()
-        updateContentState {
+        _uiState.updateState {
             it.copy(
                 searchQuery = "",
-                searchResults = emptyList(),
+                searchResults = persistentListOf(),
                 isSearchActive = false,
                 isLoading = false
             )
@@ -218,31 +215,21 @@ class HomeViewModel @Inject constructor(
     private fun performSearch(query: String, provider: String) {
         searchJob?.cancel()
         searchJob = viewModelScope.launch(Dispatchers.IO) {
-            updateContentState { it.copy(isLoading = true, isSearchActive = true, errorMessage = null) }
+            _uiState.updateState { it.copy(isLoading = true, isSearchActive = true, errorMessage = null) }
             try {
                 val results = repository.searchSongs(query, provider)
-                updateContentState {
-                    it.copy(searchResults = results, isLoading = false)
+                _uiState.updateState {
+                    it.copy(searchResults = results.toPersistentList(), isLoading = false)
                 }
             } catch (_: Exception) {
-                updateContentState {
-                    it.copy(isLoading = false, errorMessage = "Failed to load results. Please check your connection.")
+                _uiState.updateState {
+                    it.copy(isLoading = false, errorMessage = "FAILED_SEARCH")
                 }
-            }
-        }
-    }
-
-    private fun updateContentState(transform: (HomeContentState) -> HomeContentState) {
-        _uiState.update { currentState ->
-            if (currentState is HomeUiState.Ready) {
-                HomeUiState.Ready(transform(currentState.uiState))
-            } else {
-                HomeUiState.Ready(transform(HomeContentState()))
             }
         }
     }
 
     fun clearError() {
-        updateContentState { it.copy(errorMessage = null) }
+        _uiState.updateState { it.copy(errorMessage = null) }
     }
 }

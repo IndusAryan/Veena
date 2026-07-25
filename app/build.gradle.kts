@@ -68,6 +68,7 @@ android {
        compilerOptions {
            jvmTarget.set(JvmTarget.JVM_17)
        }
+        jvmToolchain(21)
         //(17)
     }
     buildFeatures {
@@ -81,6 +82,7 @@ android {
         includeInApk = false
         includeInBundle = false
     }
+    ndkVersion = "27.3.13750724"
 }
 
 dependencies {
@@ -93,6 +95,7 @@ dependencies {
     ksp(libs.hilt.android.compiler)
     implementation(libs.androidx.hilt.navigation.compose)
     implementation(libs.kotlinx.serialization.json)
+    implementation(libs.kotlinx.collections.immutable)
     implementation(libs.logging.interceptor)
     implementation(libs.coil.compose)
     implementation(libs.coil.network.okhttp)

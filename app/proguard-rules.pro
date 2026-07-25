@@ -24,11 +24,6 @@
 -dontwarn com.google.re2j.**
 -dontwarn java.beans.**
 
-# Keep the specific entry point class exactly as it is
--keep class com.veena.saavn.Plugin { *; }
--keep class com.veena.ytmusic.Plugin { *; }
--keep class com.veena.newpipe.Plugin { *; }
-
 # Also keep the contract (since the plugin uses it to implement)
 -keep class com.indus.veena.contract.** { *; }
 
