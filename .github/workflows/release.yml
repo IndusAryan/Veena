@@ -29,6 +29,11 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
+      - name: Remove NDK to match F-Droid buil`d environment
+        run: |
+          rm -rf "$ANDROID_HOME/ndk"
+          rm -rf "$ANDROID_SDK_ROOT/ndk" 2>/dev/null || true
+
       - name: Decode keystore
         run: |
           echo "${{ secrets.KEY_B64 }}" | base64 --decode > ${{ github.workspace }}/keystore.jks

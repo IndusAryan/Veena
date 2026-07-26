@@ -82,7 +82,6 @@ android {
         includeInApk = false
         includeInBundle = false
     }
-    ndkVersion = "27.3.13750724"
 }
 
 dependencies {
