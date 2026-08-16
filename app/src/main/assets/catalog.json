@@ -2,8 +2,8 @@
   {
     "id": "np",
     "name": "NewPipe",
-    "version": "1.0.0",
-    "versionCode": 1,
+    "version": "1.0.1",
+    "versionCode": 2,
     "downloadUrl": "https://github.com/Dp3seoQne/VeenaCommunityAddons/releases/latest/download/np.veena",
     "iconUrl": "https://newpipe.net/img/logo_200.png",
     "description": "YouTube Music search and streaming extractor.",
@@ -41,12 +41,12 @@
   {
     "id": "ytm",
     "name": "YT Music",
-    "version": "1.0.0",
-    "versionCode": 1,
+    "version": "1.0.1",
+    "versionCode": 2,
     "author": "Community",
     "description": "Stream from YT Music.",
     "downloadUrl": "https://github.com/Dp3seoQne/VeenaCommunityAddons/releases/latest/download/ytm.veena",
-    "iconUrl": "https://upload.wikimedia.org/wikipedia/commons/d/d8/YouTubeMusic_Logo.png",
+    "iconUrl": "https://music.youtube.com/img/favicon_144.png",
     "isOfficial": false,
     "size": "14.1 MB",
     "capabilities": ["search", "details", "stream", "suggestions"]

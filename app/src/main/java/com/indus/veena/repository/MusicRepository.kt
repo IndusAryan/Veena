@@ -76,8 +76,8 @@ class MusicRepository @Inject constructor(
         val extension = extensionManager.getById(providerName) ?: return@withContext emptyList()
         return@withContext try {
             extension.addon.searchSongs(query).map { it.toSongModel(providerName, extension.manifest.name) }
-        } catch (e: Exception) {
-            Log.e(TAG, "Search failed", e)
+        } catch (t: Throwable) { // Catches LinkageError, NoSuchMethodError, and Exceptions
+            Log.e(TAG, "Search failed", t)
             emptyList()
         }
     }
@@ -86,7 +86,7 @@ class MusicRepository @Inject constructor(
         val extension = extensionManager.getById(providerName) ?: return@withContext null
         return@withContext try {
             extension.addon.getSongDetails(id).toSongModel(providerName, extension.manifest.name)
-        } catch (e: Exception) {
+        } catch (t: Throwable) { // Catches LinkageError, NoSuchMethodError, and Exceptions
             null
         }
     }
@@ -127,8 +127,8 @@ class MusicRepository @Inject constructor(
                 val result = json.decodeFromString<ItunesSearchResponse>(body)
                 result.results.mapNotNull { it.trackName }
             }
-        } catch (e: Exception) {
-            Log.e(TAG, "iTunes suggestions failed", e)
+        } catch (t: Throwable) {
+            Log.e(TAG, "iTunes suggestions failed", t)
             emptyList()
         }
     }

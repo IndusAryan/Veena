@@ -103,7 +103,7 @@ class MainActivity : ComponentActivity() {
                 }
                 LaunchedEffect(Unit) {
                     playerViewModel.toastEvent.collectLatest { message ->
-                        Toast.makeText(this@MainActivity, message, Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this@MainActivity, message, LENGTH_SHORT).show()
                     }
                 }
                 val navController = rememberNavController()
