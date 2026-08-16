@@ -43,6 +43,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
@@ -81,11 +83,19 @@ fun AddonsScreen(
     val downloadProgress by viewModel.downloadProgress.collectAsStateWithLifecycle()
     val updateStatusMap by viewModel.updateStatusMap.collectAsStateWithLifecycle()
     val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
 
+    // Listens for install/delete toast events
+    LaunchedEffect(Unit) {
+        viewModel.uiEvent.collect { message ->
+            snackbarHostState.showSnackbar(message)
+        }
+    }
     var selectedTab by remember { mutableIntStateOf(0) }
     val tabs = listOf("Installed", "Official", "Community")
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text("Addon Manager", fontWeight = FontWeight.Bold) },

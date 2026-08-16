@@ -29,6 +29,7 @@
 
 - 🧩 **Addon Architecture** — Modular system for discovery, streaming and downloading.
 - 🔍 **Multi-API Support** — Search across multiple sources simultaneously using custom addons.
+- 💡 **Search Suggestions** — Powered by iTunes for quick and accurate music discovery (Note: This is an inbuilt API not an addon).
 - 📥 **Music Downloader** — High-quality music downloads with metadata tagging.
 - 📻 **Powerful Streamer** — Seamless streaming experience with ExoPlayer/Media3 integration.
 - 🎨 **Material 3 & Haze** — Modern, beautiful UI with glassmorphic blur effects and dynamic colors.

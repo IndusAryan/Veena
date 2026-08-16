@@ -27,7 +27,9 @@ import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -43,6 +45,9 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.BlurredEdgeTreatment
@@ -74,6 +79,31 @@ fun DownloadsScreen(
 ) {
     val downloads by viewModel.downloads.collectAsStateWithLifecycle()
     val favourites by favViewModel.favourites.collectAsStateWithLifecycle(emptyList())
+
+    var songToDelete by remember { mutableStateOf<String?>(null) }
+
+    if (songToDelete != null) {
+        AlertDialog(
+            onDismissRequest = { songToDelete = null },
+            title = { Text("Delete Download") },
+            text = { Text("This will delete the history from here but your file on disk will remain.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        songToDelete?.let { viewModel.removeDownload(it) }
+                        songToDelete = null
+                    }
+                ) {
+                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { songToDelete = null }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
 
     Scaffold(
         topBar = {
@@ -209,7 +239,7 @@ fun DownloadsScreen(
                         }
                     },
                     onTogglePause = { viewModel.togglePause(entity.songId, entity.state == DownloadState.DOWNLOADING) },
-                    onCancel = { viewModel.removeDownload(entity.songId) }
+                    onCancel = { songToDelete = entity.songId }
                 )
             }
         }

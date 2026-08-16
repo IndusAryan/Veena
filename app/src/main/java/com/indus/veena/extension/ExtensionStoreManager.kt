@@ -104,19 +104,34 @@ class ExtensionStoreManager @Inject constructor(
         }
     }
 
-    suspend fun fetchGithubUpdateInfo(updateUrl: String, addonId: String): UpdateInfo? = withContext(Dispatchers.IO) {
-        if (updateUrl.isEmpty() || !updateUrl.contains("github.com")) return@withContext null
-        val apiUrl = updateUrl
-            .replace("https://github.com", "https://api.github.com/repos")
-            .replace("/releases/latest", "/releases/latest")
+    suspend fun fetchGithubUpdateInfo(downloadOrReleaseUrl: String, addonId: String): UpdateInfo? = withContext(Dispatchers.IO) {
+        if (!downloadOrReleaseUrl.contains("github.com")) return@withContext null
 
-        val request = Request.Builder().url(apiUrl).build()
+        // Correctly matches owner and repo only (e.g., owner = Dp3seoQne, repo = VeenaCommunityAddons)
+        val match = Regex("""github\.com/([^/]+)/([^/]+)""").find(downloadOrReleaseUrl) ?: return@withContext null
+        val owner = match.groupValues[1]
+        val repo = match.groupValues[2]
+
+        // Clean target API endpoint
+        val apiUrl = "https://api.github.com/repos/$owner/$repo/releases/latest"
+
+        val request = Request.Builder()
+            .url(apiUrl)
+            .header("Accept", "application/vnd.github.v3+json")
+            .build()
+
         try {
             okHttpClient.newCall(request).execute().use { response ->
                 if (!response.isSuccessful) return@withContext null
-                val release = json.decodeFromString<GithubRelease>(response.body.string())
-                val matchingAsset = release.assets.find { it.name.endsWith(".veena") || it.name.contains(addonId) }
-                    ?: release.assets.firstOrNull()
+
+                val body = response.body?.string() ?: return@withContext null
+                val release = json.decodeFromString<GithubRelease>(body)
+
+                // Matches the asset file for this specific addon (e.g. np.veena, sc.veena, etc.)
+                val matchingAsset = release.assets.find {
+                    it.name.equals("$addonId.veena", ignoreCase = true) ||
+                            it.name.contains(addonId, ignoreCase = true)
+                } ?: release.assets.firstOrNull { it.name.endsWith(".veena") }
 
                 if (matchingAsset != null) {
                     UpdateInfo(
@@ -127,7 +142,7 @@ class ExtensionStoreManager @Inject constructor(
                 } else null
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to fetch live Github updates for: $addonId", e)
+            Log.e(TAG, "Failed to check update metadata for $addonId", e)
             null
         }
     }

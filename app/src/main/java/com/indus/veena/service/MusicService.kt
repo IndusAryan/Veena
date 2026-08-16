@@ -132,8 +132,6 @@ class MusicService : MediaSessionService(), MediaSession.Callback {
         controller: MediaSession.ControllerInfo
     ): MediaSession.ConnectionResult {
         val connectionResult = super.onConnect(session, controller)
-
-        // Add all custom commands to the available session commands
         val sessionCommands = connectionResult.availableSessionCommands
             .buildUpon()
             .add(SessionCommand(commandRewind, Bundle.EMPTY))
@@ -143,7 +141,7 @@ class MusicService : MediaSessionService(), MediaSession.Callback {
 
         return MediaSession.ConnectionResult.accept(
             sessionCommands,
-            connectionResult.availablePlayerCommands
+            Player.Commands.Builder().addAllCommands().build()
         )
     }
 

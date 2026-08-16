@@ -1,5 +1,7 @@
 package com.indus.veena
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
@@ -7,8 +9,10 @@ import android.widget.Toast
 import android.widget.Toast.LENGTH_SHORT
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
@@ -25,10 +29,18 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import kotlinx.coroutines.flow.collectLatest
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -96,6 +108,36 @@ class MainActivity : ComponentActivity() {
                 isAmoled = currentTheme == DataStoreKeys.AppTheme.AMOLED,
                 accent = currentAccent
             ) {
+                var hasNotificationPermission by remember {
+                    mutableStateOf(
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            ContextCompat.checkSelfPermission(
+                                this@MainActivity,
+                                Manifest.permission.POST_NOTIFICATIONS
+                            ) == PackageManager.PERMISSION_GRANTED
+                        } else true
+                    )
+                }
+
+                val permissionLauncher = rememberLauncherForActivityResult(
+                    contract = ActivityResultContracts.RequestPermission(),
+                    onResult = { isGranted ->
+                        hasNotificationPermission = isGranted
+                        if (!isGranted) {
+                            Toast.makeText(this@MainActivity, "Notification permission is required for showing download progress in notification bar.", Toast.LENGTH_LONG).show()
+                        }
+                    }
+                )
+
+
+                LaunchedEffect(Unit) {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        if (!hasNotificationPermission) {
+                            permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                        }
+                    }
+                }
+
                 val themePrimary = androidx.compose.material3.MaterialTheme.colorScheme.primary
                 LaunchedEffect(themePrimary) {
                     val hex = String.format("#%08X", themePrimary.toArgb())
