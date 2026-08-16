@@ -19,8 +19,8 @@ android {
         applicationId = "com.indus.veena"
         minSdk = 24
         targetSdk = 37
-        versionCode = 1
-        versionName = "1.5"
+        versionCode = 2
+        versionName = "1.6"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
