@@ -7,8 +7,8 @@ package com.indus.veena.contract
  * the matching capability, they throw [ExtensionError.CapabilityNotSupported]
  * rather than calling into JS and getting a cryptic "not a function" error.
  *
- * All methods are suspend — callers never need to know whether a result
- * came from a network call, a cache, or a local file.
+ * Methods are blocking; the host dispatches calls to an IO dispatcher.
+ * Implement [DiscoveryAddon] and declare "discovery" to expose curated music sections.
  */
 interface MusicAddon {
 

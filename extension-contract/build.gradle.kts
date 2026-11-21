@@ -26,7 +26,8 @@ android {
 }
 
 dependencies {
-    compileOnly("com.squareup.okhttp3:okhttp:5.3.2")
+    testImplementation("junit:junit:4.13.2")
+    compileOnly("com.squareup.okhttp3:okhttp:5.5.1")
     implementation(libs.kotlinx.serialization.json)
 }
 

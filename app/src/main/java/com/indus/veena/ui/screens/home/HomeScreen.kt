@@ -122,6 +122,7 @@ import coil3.compose.AsyncImage
 import com.indus.veena.R
 import com.indus.veena.database.sqlite.entities.DownloadEntity
 import com.indus.veena.database.sqlite.entities.DownloadState
+import com.indus.veena.models.PlaybackQueue
 import com.indus.veena.models.SongModel
 import com.indus.veena.repository.MusicRepository
 import com.indus.veena.ui.screens.player.PlayerState
@@ -131,7 +132,7 @@ import androidx.compose.ui.res.stringResource
 @Composable
 fun HomeScreen(
     paddingValues: PaddingValues,
-    onSongClick: (SongModel) -> Unit,
+    onSongClick: (PlaybackQueue) -> Unit,
     onAddonsClick: () -> Unit,
     playerState: PlayerState,
     playerDominantColor: Color? = Color.Unspecified,
@@ -151,10 +152,11 @@ fun HomeScreen(
         } ?: defaultPrimary
     }
 
-    LaunchedEffect(uiState.errorMessage) {
+    val failedSearchMessage = androidx.compose.ui.res.stringResource(R.string.failed_to_load_results)
+    LaunchedEffect(uiState.errorMessage, failedSearchMessage) {
         uiState.errorMessage?.let { errorType ->
             val message = if (errorType == "FAILED_SEARCH") {
-                context.getString(R.string.failed_to_load_results)
+                failedSearchMessage
             } else {
                 errorType
             }
@@ -195,7 +197,7 @@ private fun HomeScreenContent(
     providerNames: List<MusicRepository.ProviderItem>,
     safeAccentColor: Color,
     playerState: PlayerState,
-    onSongClick: (SongModel) -> Unit,
+    onSongClick: (PlaybackQueue) -> Unit,
     onAddonsClick: () -> Unit,
     onDownloadSong: (SongModel) -> Unit,
     onTogglePause: (String, Boolean) -> Unit,
@@ -206,6 +208,7 @@ private fun HomeScreenContent(
     onProviderSelected: (MusicRepository.ProviderItem) -> Unit,
     onClearSearch: () -> Unit
 ) {
+    val queueSource = stringResource(R.string.search)
     val focusManager = LocalFocusManager.current
     var isSearchBarActive by remember { mutableStateOf(false) }
     var topBarHeight by remember { mutableIntStateOf(0) }
@@ -249,7 +252,7 @@ private fun HomeScreenContent(
                     val downloadState = downloads.find { it.songId == song.id }
                     SongListItem(
                         song = song,
-                        onClick = { onSongClick(song) },
+                        onClick = { onSongClick(PlaybackQueue.from(queueSource, state.searchResults, song)) },
                         downloadEntity = downloadState,
                         isNowPlaying = song.id == playerState.activeSong?.id,
                         isPlaying = playerState.isPlaying,
@@ -314,13 +317,13 @@ private fun EmptySourcesState(
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
-            text = "No sources configured",
+            text = stringResource(R.string.no_sources_configured),
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = "Install addons to start searching and downloading music",
+            text = stringResource(R.string.install_addons_description),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = 32.dp),
@@ -331,7 +334,7 @@ private fun EmptySourcesState(
             onClick = onAddonsClick,
             shape = RoundedCornerShape(12.dp)
         ) {
-            Text("Install Addons")
+            Text(stringResource(R.string.install_addons))
         }
     }
 }
@@ -479,7 +482,7 @@ fun VeenaTopAppBar(
     }
 }
 
-private fun drawLampGlow(drawScope: DrawScope, color: Color, expansion: Float = 1f) {
+internal fun drawLampGlow(drawScope: DrawScope, color: Color, expansion: Float = 1f) {
     with(drawScope) {
         val center = Offset(x = size.width / 2f, y = 0f)
         val radius = size.height * 1.35f
@@ -515,6 +518,7 @@ fun SearchBar(
     content: @Composable () -> Unit
 ) {
     val focusRequester = remember { FocusRequester() }
+    val queueSource = stringResource(R.string.search)
     val focusManager = LocalFocusManager.current
 
     val glassBrush = remember(borderColor) {
@@ -559,10 +563,10 @@ fun SearchBar(
                     },
                     modifier = Modifier.size(24.dp)
                 ) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                 }
             } else {
-                Icon(Icons.Default.Search, contentDescription = "Search", modifier = Modifier.size(24.dp))
+                Icon(Icons.Default.Search, contentDescription = stringResource(R.string.search), modifier = Modifier.size(24.dp))
             }
 
             Spacer(modifier = Modifier.width(16.dp))
@@ -588,7 +592,7 @@ fun SearchBar(
                     Box(contentAlignment = Alignment.CenterStart) {
                         if (query.isEmpty()) {
                             Text(
-                                text = "Search songs...",
+                                text = stringResource(R.string.search_songs),
                                 style = MaterialTheme.typography.bodyLarge,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                             )
@@ -601,7 +605,7 @@ fun SearchBar(
             if (query.isNotEmpty()) {
                 Spacer(modifier = Modifier.width(8.dp))
                 IconButton(onClick = onClearClick, modifier = Modifier.size(24.dp)) {
-                    Icon(Icons.Default.Close, contentDescription = "Clear")
+                    Icon(Icons.Default.Close, contentDescription = stringResource(R.string.clear))
                 }
             }
         }
@@ -617,7 +621,7 @@ fun SearchBar(
 }
 
 @Composable
-private fun VeenaTitle(accentColor: Color, isAnimActive: Boolean) {
+fun VeenaTitle(accentColor: Color, isAnimActive: Boolean, modifier: Modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)) {
     val transition = rememberInfiniteTransition(label = "vTitle")
     val shimmerOffset by transition.animateFloat(
         initialValue = 0f,
@@ -630,7 +634,7 @@ private fun VeenaTitle(accentColor: Color, isAnimActive: Boolean) {
     )
 
     val onSurface = MaterialTheme.colorScheme.onSurface
-    val textBrush = remember(accentColor, shimmerOffset) {
+    val textBrush = remember(accentColor, shimmerOffset, onSurface) {
         Brush.linearGradient(
             colorStops = arrayOf(
                 0f to onSurface,
@@ -643,7 +647,7 @@ private fun VeenaTitle(accentColor: Color, isAnimActive: Boolean) {
     }
 
     Text(
-        text = "Veena",
+        text = stringResource(R.string.veena_brand),
         style = MaterialTheme.typography.headlineMedium.copy(
             fontFamily = FontFamily(Font(R.font.playfair_display_variable)),
             fontWeight = FontWeight.ExtraBold,
@@ -651,7 +655,7 @@ private fun VeenaTitle(accentColor: Color, isAnimActive: Boolean) {
             fontSize = 32.sp,
             brush = textBrush
         ),
-        modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
+        modifier = modifier
     )
 }
 
@@ -713,15 +717,13 @@ fun SongListItem(
     isAnimActive: Boolean = true,
     downloadEntity: DownloadEntity?
 ) {
-    val pulseAlpha by rememberInfiniteTransition(label = "rowPulse").animateFloat(
-        initialValue = 0.0f,
-        targetValue = if (isAnimActive) 1f else 0f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1200, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "pulseAlpha"
-    )
+    val pulse = if (isNowPlaying && isPlaying && isAnimActive) {
+        rememberInfiniteTransition(label = "rowPulse").animateFloat(
+            initialValue = 0f, targetValue = 1f,
+            animationSpec = infiniteRepeatable(tween(1200, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+            label = "pulseAlpha")
+    } else null
+
 
     Row(
         modifier = Modifier
@@ -731,7 +733,7 @@ fun SongListItem(
             .drawWithContent {
                 drawContent()
                 if (isNowPlaying) {
-                    val currentPulse = if (isPlaying) pulseAlpha * 0.25f else 0.12f
+                    val currentPulse = if (isPlaying) (pulse?.value ?: 0f) * 0.25f else 0.12f
                     val brush = Brush.horizontalGradient(
                         colors = listOf(
                             accentColor.copy(alpha = 0.25f + currentPulse),
@@ -782,7 +784,7 @@ fun SongListItem(
         ) { state ->
             when (state) {
                 "BUSY_INDETERMINATE" -> CircularProgressIndicator(modifier = Modifier.padding(12.dp).size(24.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.primary)
-                "COMPLETED" -> IconButton(onClick = { }) { Icon(Icons.Rounded.CheckCircle, contentDescription = "Downloaded", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(28.dp)) }
+                "COMPLETED" -> IconButton(onClick = { }) { Icon(Icons.Rounded.CheckCircle, contentDescription = stringResource(R.string.downloaded), tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(28.dp)) }
                 "PROGRESS" -> {
                     val progressValue = (downloadEntity?.progress ?: 0) / 100f
                     val isProcessing = progressValue >= 0.99f && downloadEntity?.state != DownloadState.COMPLETED
@@ -799,14 +801,14 @@ fun SongListItem(
                         IconButton(onClick = onTogglePause, modifier = Modifier.size(32.dp)) {
                             Icon(
                                 imageVector = if (downloadEntity?.state == DownloadState.PAUSED) Icons.Default.PlayArrow else Icons.Default.Pause,
-                                contentDescription = "Pause/Resume",
+                                contentDescription = stringResource(R.string.pause_resume),
                                 modifier = Modifier.size(18.dp),
                                 tint = if (isProcessing) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
                             )
                         }
                     }
                 }
-                else -> IconButton(onClick = onDownloadClick) { Icon(Icons.Default.Download, contentDescription = "Download") }
+                else -> IconButton(onClick = onDownloadClick) { Icon(Icons.Default.Download, contentDescription = stringResource(R.string.download)) }
             }
         }
     }
@@ -877,19 +879,19 @@ fun SearchContent(
     if (showClearConfirm) {
         androidx.compose.material3.AlertDialog(
             onDismissRequest = { showClearConfirm = false },
-            title = { Text("Clear Search History") },
-            text = { Text("Are you sure you want to clear all search history? This cannot be undone.") },
+            title = { Text(stringResource(R.string.clear_history_title)) },
+            text = { Text(stringResource(R.string.clear_history_message)) },
             confirmButton = {
                 TextButton(onClick = {
                     onClearHistory()
                     showClearConfirm = false
                 }) {
-                    Text("Clear All", color = MaterialTheme.colorScheme.error)
+                    Text(stringResource(R.string.clear_all), color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showClearConfirm = false }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.cancel))
                 }
             }
         )
@@ -907,13 +909,13 @@ fun SearchContent(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Recent Searches",
+                    text = stringResource(R.string.recent_searches),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 TextButton(onClick = { showClearConfirm = true }) {
-                    Text("Clear All", style = MaterialTheme.typography.bodySmall)
+                    Text(stringResource(R.string.clear_all), style = MaterialTheme.typography.bodySmall)
                 }
             }
 
@@ -942,7 +944,7 @@ fun SearchContent(
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Close,
-                                    contentDescription = "Remove",
+                                    contentDescription = stringResource(R.string.remove),
                                     modifier = Modifier.size(14.dp)
                                 )
                             }
@@ -957,7 +959,7 @@ fun SearchContent(
 
         if (query.length >= 3 && suggestions.isNotEmpty()) {
             Text(
-                text = "Suggestions",
+                text = stringResource(R.string.suggestions),
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -1004,7 +1006,7 @@ fun SearchContent(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "Search for songs, artists, or albums",
+                    text = stringResource(R.string.search_hint),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                 )

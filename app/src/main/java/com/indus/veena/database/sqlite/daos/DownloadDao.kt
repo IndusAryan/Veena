@@ -10,7 +10,7 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface DownloadDao {
-    @Query("SELECT * FROM downloads ORDER BY state DESC")
+    @Query("SELECT * FROM downloads ORDER BY rowid DESC")
     fun observeAllDownloads(): Flow<List<DownloadEntity>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)

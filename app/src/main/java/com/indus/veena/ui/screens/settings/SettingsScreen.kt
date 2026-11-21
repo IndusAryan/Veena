@@ -1,5 +1,8 @@
 package com.indus.veena.ui.screens.settings
 
+import com.indus.veena.ui.components.localizedLabel
+import com.indus.veena.R
+import androidx.compose.ui.res.stringResource
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.animation.core.Spring
@@ -31,6 +34,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.ChevronRight
+import androidx.compose.material.icons.outlined.Forum
 import androidx.compose.material.icons.outlined.Code
 import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.Download
@@ -41,6 +45,8 @@ import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Switch
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
@@ -79,6 +85,7 @@ fun SettingsScreen(
     onAddonsClick: () -> Unit,
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
+    val autoUpdateAddons by viewModel.autoUpdateAddons.collectAsStateWithLifecycle()
     val currentSuggestionId by viewModel.currentSuggestionProvider.collectAsStateWithLifecycle()
     val availableSuggestionProviders by viewModel.availableSuggestionProviders.collectAsStateWithLifecycle()
     val selectedProviderName = remember(currentSuggestionId, availableSuggestionProviders) {
@@ -99,7 +106,7 @@ fun SettingsScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "Settings",
+                        text = stringResource(R.string.settings),
                         fontWeight = FontWeight.Bold
                     )
                 },
@@ -114,18 +121,17 @@ fun SettingsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(
-                    top = innerPadding.calculateTopPadding(),
-                    bottom = innerPadding.calculateBottomPadding() + 32.dp
+                    top = innerPadding.calculateTopPadding()
                 ).verticalScroll(rememberScrollState())
-                .padding(bottom = 140.dp) // room for bottom nav
+                .padding(bottom = innerPadding.calculateBottomPadding() + 172.dp)
         ) {
-            SettingsSectionHeader(icon = Icons.Outlined.Palette, title = "Appearance")
+            SettingsSectionHeader(icon = Icons.Outlined.Palette, title = stringResource(R.string.appearance))
 
             SettingsCard {
                 SettingsRow(
                     icon = Icons.Outlined.DarkMode,
-                    title = "App Theme",
-                    subtitle = if (currentTheme == DataStoreKeys.AppTheme.AMOLED) "AMOLED" else currentTheme.name.lowercase().replaceFirstChar { it.uppercase() },
+                    title = stringResource(R.string.app_theme),
+                    subtitle = currentTheme.localizedLabel(),
                     onClick = { showThemeDialog = true }
                 )
             }
@@ -154,7 +160,7 @@ fun SettingsScreen(
                         )
                         Spacer(Modifier.width(8.dp))
                         Text(
-                            text = "Accent Color",
+                            text = stringResource(R.string.accent_color),
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -178,7 +184,7 @@ fun SettingsScreen(
 
                     Spacer(Modifier.height(10.dp))
                     Text(
-                        text = "Current: ${currentAccent.displayName}",
+                        text = stringResource(R.string.current_accent, stringResource(currentAccent.labelRes)),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.primary,
                         fontWeight = FontWeight.Medium,
@@ -192,38 +198,46 @@ fun SettingsScreen(
 
             Spacer(Modifier.height(24.dp))
 
-            SettingsSectionHeader(icon = Icons.Outlined.HighQuality, title = "Addons")
+            SettingsSectionHeader(icon = Icons.Outlined.HighQuality, title = stringResource(R.string.addons))
             SettingsCard {
                 SettingsRow(
                     icon = Icons.Outlined.Extension,
-                    title = "Addon Manager",
-                    subtitle = "Manage providers",
+                    title = stringResource(R.string.addon_manager),
+                    subtitle = stringResource(R.string.manage_providers),
                     onClick = { onAddonsClick() }
+                )
+                HorizontalDivider(Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.outlineVariant)
+                SettingsRow(
+                    icon = Icons.Outlined.Extension,
+                    title = stringResource(R.string.update_addons_automatically),
+                    subtitle = stringResource(R.string.check_for_updates_on_app_start),
+                    trailingContent = { Switch(checked = autoUpdateAddons, onCheckedChange = viewModel::setAutoUpdateAddons) },
+                    onClick = { viewModel.setAutoUpdateAddons(!autoUpdateAddons) }
                 )
             }
 
             Spacer(Modifier.height(24.dp))
 
-            SettingsSectionHeader(icon = Icons.Outlined.HighQuality, title = "Audio & Playback")
+            SettingsSectionHeader(icon = Icons.Outlined.HighQuality, title = stringResource(R.string.audio_playback))
 
             SettingsCard {
                 SettingsRow(
                     icon = Icons.Outlined.HighQuality,
-                    title = "Streaming Quality",
+                    title = stringResource(R.string.streaming_quality),
                     subtitle = when (currentQuality) {
-                        DataStoreKeys.AudioQuality.HIGH -> "High · 320 kbps"
-                        DataStoreKeys.AudioQuality.MEDIUM -> "Standard · 160 kbps"
-                        DataStoreKeys.AudioQuality.LOW -> "Data Saver · 48 kbps"
+                        DataStoreKeys.AudioQuality.HIGH -> stringResource(R.string.high_320_kbps)
+                        DataStoreKeys.AudioQuality.MEDIUM -> stringResource(R.string.standard_160_kbps)
+                        DataStoreKeys.AudioQuality.LOW -> stringResource(R.string.data_saver_48_kbps)
                     },
                     onClick = { showQualityDialog = true }
                 )
                 SettingsRow(
                     icon = Icons.Outlined.Download,
-                    title = "Download Quality",
+                    title = stringResource(R.string.download_quality),
                     subtitle = when (currentDownloadQuality) {
-                        DataStoreKeys.AudioQuality.HIGH -> "High · 320 kbps"
-                        DataStoreKeys.AudioQuality.MEDIUM -> "Standard · 160 kbps"
-                        DataStoreKeys.AudioQuality.LOW -> "Data Saver · 48 kbps"
+                        DataStoreKeys.AudioQuality.HIGH -> stringResource(R.string.high_320_kbps)
+                        DataStoreKeys.AudioQuality.MEDIUM -> stringResource(R.string.standard_160_kbps)
+                        DataStoreKeys.AudioQuality.LOW -> stringResource(R.string.data_saver_48_kbps)
                     },
                     onClick = { showDownloadQualityDialog = true }
                 )
@@ -231,20 +245,26 @@ fun SettingsScreen(
 
             Spacer(Modifier.height(24.dp))
 
-            SettingsSectionHeader(icon = Icons.Outlined.Search, title = "General")
+            SettingsSectionHeader(icon = Icons.Outlined.Search, title = stringResource(R.string.general))
 
             SettingsCard {
                 SettingsRow(
                     icon = Icons.Outlined.Search,
-                    title = "Search Suggestions",
-                    subtitle = "Source: $selectedProviderName",
+                    title = stringResource(R.string.search_suggestions),
+                    subtitle = stringResource(R.string.suggestion_source_name, selectedProviderName),
                     onClick = { showSuggestionDialog = true }
                 )
                 val context = androidx.compose.ui.platform.LocalContext.current
                 SettingsRow(
+                    icon = Icons.Outlined.Forum,
+                    title = stringResource(R.string.telegram_help),
+                    subtitle = stringResource(R.string.telegram_channel),
+                    onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, "https://t.me/VeenaApp".toUri())) }
+                )
+                SettingsRow(
                     icon = Icons.Outlined.Code,
-                    title = "GitHub Repository",
-                    subtitle = "View source & contribute",
+                    title = stringResource(R.string.github_repository),
+                    subtitle = stringResource(R.string.view_source_contribute),
                     onClick = {
                         val intent = Intent(Intent.ACTION_VIEW,
                             "https://github.com/indusAryan/Veena".toUri())
@@ -256,7 +276,7 @@ fun SettingsScreen(
             Spacer(Modifier.height(32.dp))
 
             Text(
-                text = "Built by IndusAryan \uD83D\uDC2F",
+                text = stringResource(R.string.built_by_indusaryan),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                 modifier = Modifier.fillMaxWidth(),
@@ -267,27 +287,27 @@ fun SettingsScreen(
 
     if (showThemeDialog) {
         SettingSelectionDialog(
-            title = "App Theme",
+            title = stringResource(R.string.app_theme),
             options = DataStoreKeys.AppTheme.entries,
             currentSelection = currentTheme,
             onDismiss = { showThemeDialog = false },
             onSelect = { viewModel.setTheme(it) },
-            labelProvider = { if (it == DataStoreKeys.AppTheme.AMOLED) "AMOLED" else it.name.lowercase().replaceFirstChar { c -> c.uppercase() } }
+            labelProvider = { it.localizedLabel() }
         )
     }
 
     if (showQualityDialog) {
         SettingSelectionDialog(
-            title = "Streaming Quality",
+            title = stringResource(R.string.streaming_quality),
             options = DataStoreKeys.AudioQuality.entries,
             currentSelection = currentQuality,
             onDismiss = { showQualityDialog = false },
             onSelect = { viewModel.setAudioQuality(it) },
             labelProvider = {
                 when (it) {
-                    DataStoreKeys.AudioQuality.HIGH   -> "High (Best Audio)"
-                    DataStoreKeys.AudioQuality.MEDIUM -> "Standard (Balanced)"
-                    DataStoreKeys.AudioQuality.LOW    -> "Low (Save Data)"
+                    DataStoreKeys.AudioQuality.HIGH   -> stringResource(R.string.high_best_audio)
+                    DataStoreKeys.AudioQuality.MEDIUM -> stringResource(R.string.standard_balanced)
+                    DataStoreKeys.AudioQuality.LOW    -> stringResource(R.string.low_save_data)
                 }
             }
         )
@@ -295,7 +315,7 @@ fun SettingsScreen(
 
     if (showSuggestionDialog) {
         SettingSelectionDialog(
-            title = "Suggestion Source",
+            title = stringResource(R.string.suggestion_source),
             options = availableSuggestionProviders,
             currentSelection = availableSuggestionProviders.find { it.id == currentSuggestionId },
             onDismiss = { showSuggestionDialog = false },
@@ -305,16 +325,16 @@ fun SettingsScreen(
     }
     if (showDownloadQualityDialog) {
         SettingSelectionDialog(
-            title = "Download Quality",
+            title = stringResource(R.string.download_quality),
             options = DataStoreKeys.AudioQuality.entries,
             currentSelection = currentDownloadQuality,
             onDismiss = { showDownloadQualityDialog = false },
             onSelect = { viewModel.setDownloadQuality(it) },
             labelProvider = {
                 when (it) {
-                    DataStoreKeys.AudioQuality.HIGH   -> "High (Best Audio)"
-                    DataStoreKeys.AudioQuality.MEDIUM -> "Standard (Balanced)"
-                    DataStoreKeys.AudioQuality.LOW    -> "Low (Save Storage)"
+                    DataStoreKeys.AudioQuality.HIGH   -> stringResource(R.string.high_best_audio)
+                    DataStoreKeys.AudioQuality.MEDIUM -> stringResource(R.string.standard_balanced)
+                    DataStoreKeys.AudioQuality.LOW    -> stringResource(R.string.low_save_storage)
                 }
             }
         )
@@ -357,6 +377,7 @@ fun SettingsRow(
     icon: ImageVector,
     title: String,
     subtitle: String,
+    trailingContent: (@Composable () -> Unit)? = null,
     onClick: () -> Unit
 ) {
     Row(
@@ -403,7 +424,7 @@ fun SettingsRow(
             )
         }
 
-        Icon(
+        if (trailingContent != null) trailingContent() else Icon(
             imageVector = Icons.Outlined.ChevronRight,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
@@ -477,7 +498,7 @@ fun AccentSwatch(
                 if (isSelected) {
                     Icon(
                         imageVector = Icons.Default.Check,
-                        contentDescription = "Selected",
+                        contentDescription = stringResource(R.string.option_selected),
                         tint = Color.White,
                         modifier = Modifier.size(20.dp)
                     )
@@ -488,7 +509,7 @@ fun AccentSwatch(
         Spacer(Modifier.height(4.dp))
 
         Text(
-            text = accent.displayName.split(" ").first(),
+            text = stringResource(accent.labelRes).split(" ").first(),
             style = MaterialTheme.typography.labelSmall,
             color = if (isSelected)
                 MaterialTheme.colorScheme.primary
@@ -510,7 +531,7 @@ fun <T> SettingSelectionDialog(
     currentSelection: T,
     onDismiss: () -> Unit,
     onSelect: (T) -> Unit,
-    labelProvider: (T) -> String
+    labelProvider: @Composable (T) -> String
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -565,7 +586,7 @@ fun <T> SettingSelectionDialog(
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text("Dismiss", fontWeight = FontWeight.Medium)
+                Text(stringResource(R.string.dismiss), fontWeight = FontWeight.Medium)
             }
         }
     )

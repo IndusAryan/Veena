@@ -5,6 +5,7 @@ import kotlinx.parcelize.Parcelize
 
 enum class Provider { YTMusic, NEWPIPE, Tidal, LOCAL }
 
+@kotlinx.serialization.Serializable
 @Parcelize
 data class SongModel(
     val id: String,
@@ -22,6 +23,8 @@ data class SongModel(
     val genre: String,
     val lyricist: String? = null,
     val year: String,
+    val playbackHeaders: Map<String, String> = emptyMap(),
+    val downloadHeaders: Map<String, String> = emptyMap(),
 ) : Parcelable
 
 data class AlbumModel(

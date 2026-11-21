@@ -1,10 +1,13 @@
 package com.indus.veena.database
 
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 
 object DataStoreKeys {
+    val DISCOVERY_PROVIDER = stringPreferencesKey("discovery_provider")
+    val AUTO_UPDATE_ADDONS = booleanPreferencesKey("auto_update_addons")
     enum class AppTheme {
-        SYSTEM, LIGHT, DARK, AMOLED
+        SYSTEM, LIGHT, DARK, AMOLED, SYSTEM_AMOLED
     }
 
     enum class AudioQuality {

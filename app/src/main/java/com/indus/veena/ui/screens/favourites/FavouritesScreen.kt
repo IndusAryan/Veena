@@ -1,5 +1,7 @@
 package com.indus.veena.ui.screens.favourites
 
+import com.indus.veena.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -7,6 +9,8 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -34,6 +38,8 @@ import com.indus.veena.database.sqlite.daos.FavouriteDao
 import com.indus.veena.database.sqlite.entities.DownloadEntity
 import com.indus.veena.database.sqlite.entities.DownloadState
 import com.indus.veena.lifecycle.ioScope
+import com.indus.veena.database.sqlite.entities.FavouriteEntity
+import com.indus.veena.models.PlaybackQueue
 import com.indus.veena.models.SongModel
 import com.indus.veena.ui.screens.downloads.DownloadItemCard
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -58,23 +64,42 @@ class FavouritesViewModel @Inject constructor(
 fun FavouritesScreen(
     paddingValues: PaddingValues,
     onBackClick: () -> Unit,
-    onSongClick: (SongModel) -> Unit,
+    onSongClick: (PlaybackQueue) -> Unit,
     viewModel: FavouritesViewModel = hiltViewModel()
 ) {
     val favourites by viewModel.favourites.collectAsState(initial = emptyList())
 
+    val favouritesSource = stringResource(R.string.favourites)
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Favourites", fontWeight = FontWeight.Bold) },
+                title = { Text(stringResource(R.string.favourites), fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 }
             )
         }
     ) { innerPadding ->
+        if (favourites.isEmpty()) {
+            // Centre independently of the outgoing navigation bar's animated padding.
+            Box(
+                modifier = Modifier.fillMaxSize()
+                    .padding(top = innerPadding.calculateTopPadding())
+                    .navigationBarsPadding(),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(Icons.Default.Favorite, null, modifier = Modifier.size(64.dp),
+                        tint = MaterialTheme.colorScheme.surfaceVariant)
+                    Spacer(Modifier.height(16.dp))
+                    Text(stringResource(R.string.no_favourites_yet), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+            return@Scaffold
+        }
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(
@@ -84,18 +109,6 @@ fun FavouritesScreen(
             ),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            if (favourites.isEmpty()) {
-                item {
-                    Box(modifier = Modifier.fillParentMaxSize(), contentAlignment = Alignment.Center) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(Icons.Default.Favorite, null, modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.surfaceVariant)
-                            Spacer(Modifier.height(16.dp))
-                            Text("No favourites yet", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                    }
-                }
-            }
-
             items(favourites, key = { it.songId }) { fav ->
                 DownloadItemCard(
                     entity = DownloadEntity(
@@ -113,20 +126,7 @@ fun FavouritesScreen(
                         state = DownloadState.COMPLETED
                     ),
                     onCardClick = {
-                        onSongClick(SongModel(
-                            id = fav.songId,
-                            title = fav.title,
-                            artist = fav.artist,
-                            thumbnail = fav.thumbnail,
-                            duration = fav.duration,
-                            url = fav.url,
-                            extensionName = fav.extensionName,
-                            provider = fav.provider,
-                            album = fav.album,
-                            year = fav.year,
-                            composer = fav.composer,
-                            genre = fav.genre
-                        ))
+                        onSongClick(PlaybackQueue.from(favouritesSource, favourites.map { it.toPlaybackSong() }, fav.toPlaybackSong()))
                     },
                     onTogglePause = {},
                     onCancel = { viewModel.removeFavourite(fav.songId) }
@@ -135,3 +135,18 @@ fun FavouritesScreen(
         }
     }
 }
+
+internal fun FavouriteEntity.toPlaybackSong() = SongModel(
+    id = songId,
+    title = title,
+    artist = artist,
+    thumbnail = thumbnail,
+    duration = duration,
+    url = url,
+    extensionName = extensionName,
+    provider = provider,
+    album = album,
+    year = year,
+    composer = composer,
+    genre = genre
+)

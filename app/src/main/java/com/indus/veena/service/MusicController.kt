@@ -3,6 +3,9 @@ package com.indus.veena.service
 import android.content.ComponentName
 import android.content.Context
 import android.util.Log
+import com.indus.veena.helpers.ImageModuleCoil.getCachedArtworkBlob
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.CancellationException
 import androidx.annotation.OptIn
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
@@ -35,14 +38,14 @@ class MusicController @OptIn(UnstableApi::class)
 @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
+    private val artworkScope = CoroutineScope(Dispatchers.Main)
+    private var artworkJob: Job? = null
+    private var selectionId = 0L
     var mediaController: MediaController? = null
     private val _closeEvent = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
     val closeEvent = _closeEvent.asSharedFlow()
-    private val connectionFuture = CompletableFuture<MediaController>()
+    private var connectionFuture: CompletableFuture<MediaController>? = null
     val ctx = context
-
-    // Connection State
-    private val _isConnected = MutableStateFlow(false)
 
     private val _errorFlow = MutableSharedFlow<String>(
         extraBufferCapacity = 10,
@@ -59,16 +62,30 @@ class MusicController @OptIn(UnstableApi::class)
     private val _currentDuration = MutableStateFlow(0L)
     val currentDuration = _currentDuration.asStateFlow()
 
-    init {
+    @OptIn(UnstableApi::class)
+    private fun connect(): CompletableFuture<MediaController> {
+        val connection = CompletableFuture<MediaController>()
+        connectionFuture = connection
         val sessionToken = SessionToken(context, ComponentName(context, MusicService::class.java))
-        val controllerFuture = MediaController.Builder(context, sessionToken).buildAsync()
+        val controllerFuture = MediaController.Builder(context, sessionToken)
+            .setListener(object : MediaController.Listener {
+                override fun onDisconnected(controller: MediaController) {
+                    if (mediaController !== controller) return
+                    mediaController = null
+                    connectionFuture = null
+                    _isPlaying.value = false
+                    _playbackState.value = Player.STATE_IDLE
+                    _currentDuration.value = 0L
+                    _closeEvent.tryEmit(Unit)
+                }
+            })
+            .buildAsync()
 
         controllerFuture.addListener({
             try {
                 mediaController = controllerFuture.get()
                 val controller = mediaController ?: return@addListener
-                connectionFuture.complete(controller)
-                _isConnected.value = true
+                connection.complete(controller)
 
                 // Sync initial state
                 _isPlaying.value = controller.isPlaying
@@ -79,13 +96,13 @@ class MusicController @OptIn(UnstableApi::class)
                 controller.addListener(object : Player.Listener {
                     override fun onPlayerError(error: PlaybackException) {
                         Log.e("MusicController", "onPlayerError: ${error.errorCodeName}", error)
-                        val errorStr = error.stackTraceToString()
-                        val message = if (error.errorCode == PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS || 
-                            errorStr.contains("403") || error.message?.contains("403") == true) {
-                            "Access Denied (403): The link might have expired or is forbidden."
-                        } else {
-                            "Playback Error: ${error.localizedMessage ?: "Source Error"}"
-                        }
+                        val httpError = generateSequence<Throwable>(error) { it.cause }
+                            .filterIsInstance<androidx.media3.datasource.HttpDataSource.InvalidResponseCodeException>()
+                            .firstOrNull()
+                        // MediaSession may reconstruct the remote cause as a generic exception.
+                        val status = httpError?.responseCode ?: StreamFailurePolicy.httpStatus(error)
+                        val message = if (status != null) context.getString(com.indus.veena.R.string.playback_http_error, status, httpError?.responseMessage.orEmpty())
+                            else context.getString(com.indus.veena.R.string.playback_error, error.localizedMessage ?: context.getString(com.indus.veena.R.string.source_error))
                         _errorFlow.tryEmit(message)
                     }
 
@@ -94,9 +111,9 @@ class MusicController @OptIn(UnstableApi::class)
                     }
 
                     override fun onEvents(player: Player, events: Player.Events) {
-                        if (!controller.isConnected) {
-                            _closeEvent.tryEmit(Unit)
-                        }
+                        _isPlaying.value = player.isPlaying
+                        _playbackState.value = player.playbackState
+                        _currentDuration.value = player.duration.coerceAtLeast(0L)
                     }
 
                     override fun onPlaybackStateChanged(playbackState: Int) {
@@ -113,37 +130,50 @@ class MusicController @OptIn(UnstableApi::class)
                     }
                 })
             } catch (e: Exception) {
-                connectionFuture.completeExceptionally(e)
-                _errorFlow.tryEmit("Failed to connect to MediaSession: ${e.message}")
+                connectionFuture = null
+                connection.completeExceptionally(e)
+                _errorFlow.tryEmit(context.getString(com.indus.veena.R.string.player_connect_failed, e.message.orEmpty()))
             }
         }, ContextCompat.getMainExecutor(context))
+        return connection
     }
 
-    suspend fun ensureConnected(): Boolean {
-        if (mediaController != null && mediaController!!.isConnected) return true
+    private suspend fun ensureConnected(): Boolean = withContext(Dispatchers.Main.immediate) {
+        if (mediaController?.isConnected == true) return@withContext true
+        val connection = connectionFuture ?: connect()
 
-        return try {
+        try {
             // Wait up to 5 seconds for connection if not ready
             withContext(Dispatchers.IO) {
-                connectionFuture.get(5, TimeUnit.SECONDS)
+                connection.get(5, TimeUnit.SECONDS)
             }
-            mediaController != null && mediaController!!.isConnected
+            mediaController?.isConnected == true
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
-            _errorFlow.tryEmit("Connection timed out or failed.")
+            _errorFlow.tryEmit(context.getString(com.indus.veena.R.string.player_connect_timeout))
             false
         }
     }
 
     suspend fun playSong(url: String, song: SongModel) {
+        val requestId = ++selectionId
+        artworkJob?.cancel()
         if (!ensureConnected()) {
-            _errorFlow.tryEmit("Cannot play: Service not connected.")
+            _errorFlow.tryEmit(context.getString(com.indus.veena.R.string.player_disconnected))
             return
         }
 
         withContext(Dispatchers.Main) {
             try {
                 val mediaItem = MediaItem.Builder()
+                    .setMediaId("${song.provider}:${song.id}:$requestId")
                     .setUri(url)
+                    .setRequestMetadata(MediaItem.RequestMetadata.Builder().setExtras(android.os.Bundle().apply {
+                        putBundle("stream_headers", android.os.Bundle().apply {
+                            song.playbackHeaders.forEach { (name, value) -> putString(name, value) }
+                        })
+                    }).build())
                     .setMediaMetadata(
                         MediaMetadata.Builder()
                             .setTitle(song.title)
@@ -158,24 +188,89 @@ class MusicController @OptIn(UnstableApi::class)
                     controller.prepare()
                     controller.play()
 
+                    _isPlaying.value = controller.isPlaying
+                    _playbackState.value = controller.playbackState
+                    artworkJob = artworkScope.launch {
+                        try {
+                            val artwork = context.getCachedArtworkBlob(song.thumbnail) ?: return@launch
+                            if (selectionId == requestId && controller.currentMediaItem?.mediaId == mediaItem.mediaId) {
+                                controller.replaceMediaItem(0, mediaItem.buildUpon().setMediaMetadata(
+                                    mediaItem.mediaMetadata.buildUpon()
+                                        .setArtworkData(artwork, MediaMetadata.PICTURE_TYPE_FRONT_COVER).build()
+                                ).build())
+                            }
+                        } catch (e: CancellationException) {
+                            throw e
+                        } catch (e: Exception) {
+                            Log.w("MusicController", "Artwork unavailable for ${song.id}", e)
+                        }
+                    }
+
                     // Force play if the service is in a weird state
                     if (!controller.playWhenReady) {
                         controller.playWhenReady = true
                     }
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
-                _errorFlow.tryEmit("Failed to load song: ${e.message}")
+                _errorFlow.tryEmit(context.getString(com.indus.veena.R.string.song_load_failed, e.message.orEmpty()))
+            }
+        }
+    }
+
+    /** Replace an expired transport while retaining media identity and cached notification artwork. */
+    suspend fun retryStream(url: String, song: SongModel, position: Long) {
+        if (!ensureConnected()) return
+        withContext(Dispatchers.Main) {
+            val controller = checkNotNull(mediaController) { context.getString(com.indus.veena.R.string.player_disconnected) }
+            val item = checkNotNull(controller.currentMediaItem) { context.getString(com.indus.veena.R.string.player_disconnected) }
+            val artworkChanged = item.mediaMetadata.artworkUri?.toString().orEmpty() != song.thumbnail
+            val metadata = when {
+                artworkChanged -> MediaMetadata.Builder().setTitle(song.title).setArtist(song.artist)
+                    .setArtworkUri(song.thumbnail.toUri()).build()
+                item.mediaMetadata.title?.toString() != song.title || item.mediaMetadata.artist?.toString() != song.artist ->
+                    item.mediaMetadata.buildUpon().setTitle(song.title).setArtist(song.artist).build()
+                else -> item.mediaMetadata
+            }
+            val refreshed = item.buildUpon().setUri(url).setMediaMetadata(metadata)
+                .setRequestMetadata(MediaItem.RequestMetadata.Builder().setExtras(android.os.Bundle().apply {
+                    putBundle("stream_headers", android.os.Bundle().apply {
+                        song.playbackHeaders.forEach { (name, value) -> putString(name, value) }
+                    })
+                }).build()).build()
+            // An older artwork job must not replace this item with the expired URI it captured.
+            artworkJob?.cancel()
+            controller.setMediaItem(refreshed, position.coerceAtLeast(0L))
+            controller.prepare()
+            controller.play()
+            if (artworkChanged || metadata.artworkData == null) {
+                val expectedSelection = selectionId
+                artworkJob = artworkScope.launch {
+                    try {
+                        val bytes = context.getCachedArtworkBlob(song.thumbnail) ?: return@launch
+                        val current = controller.currentMediaItem
+                        if (selectionId == expectedSelection && current?.mediaId == item.mediaId) {
+                            controller.replaceMediaItem(0, current.buildUpon().setMediaMetadata(
+                                current.mediaMetadata.buildUpon().setArtworkData(bytes, MediaMetadata.PICTURE_TYPE_FRONT_COVER).build()
+                            ).build())
+                        }
+                    } catch (e: CancellationException) { throw e }
+                    catch (e: Exception) { Log.w("MusicController", "Retry artwork unavailable", e) }
+                }
             }
         }
     }
 
     fun togglePlayPause() {
         if (mediaController?.isConnected == true) {
-            if (mediaController!!.isPlaying) mediaController?.pause()
-            else mediaController?.play()
-        } else {
-            CoroutineScope(Dispatchers.IO).launch {
-                if (ensureConnected()) togglePlayPause()
+            mediaController?.let { controller ->
+                if (controller.playWhenReady && controller.playbackState != Player.STATE_ENDED) {
+                    controller.pause()
+                } else {
+                    if (controller.playbackState == Player.STATE_ENDED) controller.seekToDefaultPosition()
+                    controller.play()
+                }
             }
         }
     }
@@ -186,7 +281,15 @@ class MusicController @OptIn(UnstableApi::class)
         }
     }
 
+    fun pauseForTrackChange() {
+        selectionId++
+        artworkJob?.cancel()
+        mediaController?.takeIf { it.isConnected && it.isPlaying }?.pause()
+    }
+
     fun stopPlayer() {
+        selectionId++
+        artworkJob?.cancel()
         if (mediaController?.isConnected == true) {
             mediaController?.stop()
             mediaController?.clearMediaItems()

@@ -32,15 +32,15 @@ object NetworkingModule {
             val request = chain.request()
             var response = chain.proceed(request)
             var attempt = 0
-            while (!response.isSuccessful && attempt < 3) {
+            while (response.code in setOf(408, 429, 500, 502, 503, 504) && attempt < 2) {
                 attempt++
                 val backoff = attempt * 1000L
+                response.close()
                 try {
                     Thread.sleep(backoff)
                 } catch (_: InterruptedException) {
                     Thread.currentThread().interrupt()
                 }
-                response.close()
                 response = chain.proceed(request)
             }
             response
@@ -51,15 +51,9 @@ object NetworkingModule {
     @Singleton
     fun provideOkHttpClient(cache: Cache, retryInterceptor: Interceptor): OkHttpClient {
         val builder = OkHttpClient.Builder().cache(cache).connectTimeout(15, TimeUnit.SECONDS)
-            .readTimeout(15, TimeUnit.SECONDS).addInterceptor { chain ->
-                var request = chain.request()
-                request = request.newBuilder().header(
-                    "Cache-Control", "public, max-age=" + 5
-                ).build()
-                chain.proceed(request)
-            }.addInterceptor(retryInterceptor)
+            .readTimeout(30, TimeUnit.SECONDS).addInterceptor(retryInterceptor)
         if (BuildConfig.DEBUG) {
-            builder.addInterceptor(HttpLoggingInterceptor().setLevel(HttpLoggingInterceptor.Level.BODY))
+            builder.addInterceptor(HttpLoggingInterceptor().setLevel(HttpLoggingInterceptor.Level.HEADERS))
         }
         return builder.build()
     }

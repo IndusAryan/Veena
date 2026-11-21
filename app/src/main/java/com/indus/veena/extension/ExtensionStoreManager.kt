@@ -8,15 +8,18 @@ import com.indus.veena.models.UpdateInfo
 import com.indus.veena.util.formatSize
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.File
-import java.io.FileOutputStream
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -62,45 +65,107 @@ class ExtensionStoreManager @Inject constructor(
         }
     }
 
-    suspend fun installExtension(item: CatalogExtensionItem) = withContext(Dispatchers.IO) {
-        val request = Request.Builder().url(item.downloadUrl).build()
-        try {
-            okHttpClient.newCall(request).execute().use { response ->
-                if (!response.isSuccessful) throw Exception("HTTP ${response.code}")
+    private val manifestCache = java.util.concurrent.ConcurrentHashMap<String, com.indus.veena.contract.ExtensionManifest>()
+    private val installMutex = kotlinx.coroutines.sync.Mutex()
+    private val _updateEvents = kotlinx.coroutines.channels.Channel<String>(kotlinx.coroutines.channels.Channel.UNLIMITED)
+    val updateEvents = _updateEvents.receiveAsFlow()
 
-                val targetDir = File(context.filesDir, "extensions").apply { mkdirs() }
-                val tempFile = File(targetDir, "${item.id}.tmp")
+    private fun readManifest(file: File): com.indus.veena.contract.ExtensionManifest =
+        java.util.zip.ZipFile(file).use { zip ->
+            val entry = requireNotNull(zip.getEntry("assets/manifest.json")) { context.getString(com.indus.veena.R.string.addon_manifest_missing) }
+            json.decodeFromString(zip.getInputStream(entry).bufferedReader().readText())
+        }
 
-                val totalBytes = response.body.contentLength()
-                var bytesCopied = 0L
+    private fun validate(manifest: com.indus.veena.contract.ExtensionManifest, id: String) {
+        manifest.requireCompatible(id)
+    }
 
-                response.body.byteStream().use { input ->
-                    FileOutputStream(tempFile).use { output ->
-                        val buffer = ByteArray(8192)
-                        var bytes = input.read(buffer)
-                        while (bytes >= 0) {
-                            output.write(buffer, 0, bytes)
-                            bytesCopied += bytes
-                            if (totalBytes > 0) {
-                                val progress = bytesCopied.toFloat() / totalBytes
-                                _downloadProgress.update { it + (item.id to progress) }
-                            }
-                            bytes = input.read(buffer)
+    private fun downloadPackage(url: String, target: File, progress: (Float) -> Unit = {}) {
+        okHttpClient.newCall(Request.Builder().url(url).build()).execute().use { response ->
+            check(response.isSuccessful) { "HTTP ${response.code}" }
+            val length = response.body.contentLength()
+            response.body.byteStream().use { input -> target.outputStream().use { output ->
+                val buffer = ByteArray(8192)
+                var copied = 0L
+                var lastPercent = -1
+                while (true) {
+                    val read = input.read(buffer)
+                    if (read < 0) break
+                    output.write(buffer, 0, read)
+                    copied += read
+                    if (length > 0) {
+                        val percent = ((copied * 100) / length).toInt()
+                        if (percent != lastPercent) {
+                            lastPercent = percent
+                            progress((copied.toFloat() / length).coerceIn(0f, 1f))
                         }
                     }
                 }
+            } }
 
+        }
+    }
+
+    suspend fun installExtension(item: CatalogExtensionItem, onlyIfNewer: Boolean = false): Boolean =
+        withContext(Dispatchers.IO) {
+            installMutex.withLock {
+                require(item.id.matches(Regex("[a-z0-9_]+"))) { context.getString(com.indus.veena.R.string.addon_invalid_id) }
+                _downloadProgress.update { it + (item.id to 0f) }
+                val targetDir = File(context.filesDir, "extensions").apply { mkdirs() }
+                val tempFile = File.createTempFile("addon-", ".tmp", targetDir)
                 val finalFile = File(targetDir, "${item.id}.veena")
-                if (finalFile.exists()) finalFile.delete()
-                tempFile.renameTo(finalFile)
-
-                _downloadProgress.update { it - item.id }
-                extensionManager.loadFile(finalFile)
+                val backup = File(targetDir, "${item.id}.backup")
+                try {
+                    downloadPackage(item.downloadUrl, tempFile) { progress ->
+                        _downloadProgress.update { it + (item.id to progress) }
+                    }
+                    currentCoroutineContext().ensureActive()
+                    val manifest = readManifest(tempFile)
+                    validate(manifest, item.id)
+                    val previous = extensionManager.getById(item.id)?.manifest
+                    if (onlyIfNewer && (previous == null || manifest.versionCode <= previous.versionCode)) {
+                        return@withLock false
+                    }
+                    if (finalFile.exists()) check(finalFile.renameTo(backup)) { context.getString(com.indus.veena.R.string.addon_backup_failed) }
+                    check(tempFile.renameTo(finalFile)) { context.getString(com.indus.veena.R.string.addon_save_failed) }
+                    try {
+                        extensionManager.loadFile(finalFile)
+                    } catch (t: Throwable) {
+                        finalFile.delete()
+                        if (backup.exists()) check(backup.renameTo(finalFile)) { context.getString(com.indus.veena.R.string.addon_restore_failed) }
+                        throw t
+                    }
+                    backup.delete()
+                    val updated = previous != null && manifest.versionCode > previous.versionCode
+                    if (updated) _updateEvents.trySend(context.getString(com.indus.veena.R.string.addon_updated, manifest.name, manifest.version))
+                    updated
+                } finally {
+                    tempFile.delete()
+                    // Also restore a backup when saving the replacement failed.
+                    if (!finalFile.exists() && backup.exists()) backup.renameTo(finalFile)
+                    _downloadProgress.update { it - item.id }
+                }
             }
-        } catch (e: Exception) {
-            _downloadProgress.update { it - item.id }
-            Log.e(TAG, "Failed to download/install extension: ${item.id}", e)
-            throw e
+        }
+
+    suspend fun updateInstalledAddons() {
+        val catalog = fetchCatalog()
+        extensionManager.extensions.value.values.toList().forEach { installed ->
+            val manifest = installed.manifest
+            val item = catalog.find { it.id == manifest.id }
+            val source = manifest.updateUrl.ifBlank { item?.downloadUrl.orEmpty() }
+            try {
+                val info = fetchGithubUpdateInfo(source, manifest.id) ?: return@forEach
+                if (info.versionCode > manifest.versionCode) {
+                    installExtension(CatalogExtensionItem(manifest.id, manifest.name, info.version,
+                        info.versionCode, info.downloadUrl, manifest.iconUrl, manifest.description,
+                        manifest.author, false, info.size, manifest.capabilities), onlyIfNewer = true)
+                }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.e(TAG, "Auto-update failed for ${manifest.id}", e)
+            }
         }
     }
 
@@ -124,23 +189,32 @@ class ExtensionStoreManager @Inject constructor(
             okHttpClient.newCall(request).execute().use { response ->
                 if (!response.isSuccessful) return@withContext null
 
-                val body = response.body?.string() ?: return@withContext null
+                val body = response.body.string()
                 val release = json.decodeFromString<GithubRelease>(body)
 
                 // Matches the asset file for this specific addon (e.g. np.veena, sc.veena, etc.)
                 val matchingAsset = release.assets.find {
-                    it.name.equals("$addonId.veena", ignoreCase = true) ||
-                            it.name.contains(addonId, ignoreCase = true)
-                } ?: release.assets.firstOrNull { it.name.endsWith(".veena") }
-
-                if (matchingAsset != null) {
-                    UpdateInfo(
-                        version = release.tag_name.removePrefix("v"),
-                        downloadUrl = matchingAsset.browser_download_url,
-                        size = formatSize(matchingAsset.size)
-                    )
-                } else null
+                    it.name.equals("$addonId.veena", ignoreCase = true)
+                } ?: return@withContext null
+                val candidate = File.createTempFile("update-", ".veena", context.cacheDir)
+                try {
+                    val cacheKey = "${matchingAsset.browser_download_url}:${matchingAsset.updated_at}:${matchingAsset.id}"
+                    val manifest = manifestCache[cacheKey] ?: run {
+                        downloadPackage(matchingAsset.browser_download_url, candidate)
+                        readManifest(candidate).also { parsed ->
+                            validate(parsed, addonId)
+                            manifestCache[cacheKey] = parsed
+                        }
+                    }
+                    validate(manifest, addonId)
+                    UpdateInfo(manifest.version, matchingAsset.browser_download_url,
+                        formatSize(matchingAsset.size), manifest.versionCode)
+                } finally {
+                    candidate.delete()
+                }
             }
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.e(TAG, "Failed to check update metadata for $addonId", e)
             null
@@ -148,16 +222,18 @@ class ExtensionStoreManager @Inject constructor(
     }
 
     suspend fun deleteExtension(id: String) = withContext(Dispatchers.IO) {
+        installMutex.withLock {
         try {
             extensionManager.unloadExtension(id)
             val targetDir = File(context.filesDir, "extensions")
             val file = File(targetDir, "$id.veena")
             if (file.exists()) {
-                if (!file.delete()) throw Exception("File deletion failed")
+                if (!file.delete()) throw Exception(context.getString(com.indus.veena.R.string.file_delete_failed))
             }
         } catch (e: Exception) {
             Log.e(TAG, "Failed to delete physical file for extension: $id", e)
             throw e
+        }
         }
     }
 }

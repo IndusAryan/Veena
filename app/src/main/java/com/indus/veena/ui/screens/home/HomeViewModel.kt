@@ -118,6 +118,9 @@ class HomeViewModel @Inject constructor(
                     val cachedBlob = context.getCachedArtworkBlob(song.thumbnail)
                     VeenaLog.d(TAG, "Passing URI to DownloadManager -> $streamUrl")
                     val mergedSong = song.copy(
+                        streamableUrls = detailedSong?.streamableUrls ?: song.streamableUrls,
+                        downloadHeaders = detailedSong?.downloadHeaders ?: song.downloadHeaders,
+                        playbackHeaders = detailedSong?.playbackHeaders ?: song.playbackHeaders,
                         title = detailedSong?.title?.takeIf { it.isNotBlank() } ?: song.title,
                         artist = detailedSong?.artist?.takeIf { it.isNotBlank() } ?: song.artist,
                         album = detailedSong?.album?.takeIf { it.isNotBlank() } ?: song.album ,
@@ -134,6 +137,7 @@ class HomeViewModel @Inject constructor(
                     )
                     VeenaLog.d(TAG, "Download Enqueued Successfully.")
                 } else {
+                    downloadManager.markFailed(song.id)
                     VeenaLog.e(TAG, "No streamable URL found for download: ${song.title}")
                     VeenaLog.e(TAG, "ERROR: Download URL Selection failed. Result was null.")
                 }

@@ -2,7 +2,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     `kotlin-dsl`
-    kotlin("plugin.serialization") version("2.3.21")
+    kotlin("plugin.serialization") version("2.4.21")
     `maven-publish`
 }
 
@@ -32,7 +32,7 @@ gradlePlugin {
 }
 
 dependencies {
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.13.0")
 }
 publishing {
     publications {

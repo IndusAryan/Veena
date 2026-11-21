@@ -4,7 +4,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     id("kotlin-parcelize")
-    kotlin("plugin.serialization") version "2.4.10"
+    kotlin("plugin.serialization") version "2.4.21"
     id("com.google.devtools.ksp")
     id("com.google.dagger.hilt.android")
 }
@@ -12,7 +12,9 @@ plugins {
 android {
     namespace = "com.indus.veena"
     compileSdk {
-        version = release(37)
+        version = release(37) {
+            minorApiLevel = 2 // Targets 37.2
+        }
     }
 
     defaultConfig {
@@ -85,6 +87,7 @@ android {
 }
 
 dependencies {
+    testImplementation("junit:junit:4.13.2")
     implementation(project(":extension-contract"))
     implementation(libs.androidx.navigation.compose)
     implementation(libs.kotlinx.serialization.json)
@@ -105,6 +108,7 @@ dependencies {
     implementation(libs.androidx.media3.exoplayer.hls)
 
     implementation(libs.haze)
+    implementation(libs.haze.blur)
     implementation(libs.haze.materials)
     implementation(libs.androidx.material3)
 
@@ -125,8 +129,8 @@ dependencies {
 
     // coroutines dependency is required to prevent dex lib errors in some providers that bundle
     // their own coroutine dep
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
+    implementation(libs.kotlinx.coroutines.core)
+    implementation(libs.kotlinx.coroutines.android)
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
@@ -136,7 +140,6 @@ dependencies {
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
-    androidTestImplementation(platform(libs.androidx.compose.bom))
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     implementation(libs.json)

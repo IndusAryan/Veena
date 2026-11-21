@@ -1,5 +1,7 @@
 package com.indus.veena.ui.screens.debugmenu
 
+import com.indus.veena.R
+import androidx.compose.ui.res.stringResource
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
@@ -41,7 +43,7 @@ fun DebugBackupScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Text("Debug Data Management", style = MaterialTheme.typography.headlineSmall)
+        Text(stringResource(R.string.debug_data_management), style = MaterialTheme.typography.headlineSmall)
         Spacer(modifier = Modifier.height(20.dp))
 
         Card(modifier = Modifier.fillMaxWidth()) {
@@ -52,7 +54,7 @@ fun DebugBackupScreen(
                     },
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Backup Data (Export to JSON)")
+                    Text(stringResource(R.string.backup_data_export_to_json))
                 }
 
                 Spacer(modifier = Modifier.height(8.dp))
@@ -64,7 +66,7 @@ fun DebugBackupScreen(
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
                 ) {
-                    Text("Restore Data (Import from JSON)")
+                    Text(stringResource(R.string.restore_data_import_from_json))
                 }
             }
         }
@@ -76,7 +78,7 @@ fun DebugBackupScreen(
             is DebugViewModel.OperationState.Loading -> {
                 CircularProgressIndicator()
                 Spacer(modifier = Modifier.height(8.dp))
-                Text("Processing...")
+                Text(stringResource(R.string.processing))
             }
             is DebugViewModel.OperationState.Success -> {
                 Text(state.message, color = MaterialTheme.colorScheme.primary)

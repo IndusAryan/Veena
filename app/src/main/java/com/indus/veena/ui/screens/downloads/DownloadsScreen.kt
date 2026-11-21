@@ -1,5 +1,8 @@
 package com.indus.veena.ui.screens.downloads
 
+import com.indus.veena.ui.components.localizedLabel
+import com.indus.veena.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
@@ -23,15 +26,15 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularWavyProgressIndicator
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
@@ -64,15 +67,17 @@ import coil3.compose.AsyncImage
 import com.indus.veena.database.sqlite.entities.DownloadEntity
 import com.indus.veena.database.sqlite.entities.DownloadState
 import com.indus.veena.models.Provider
+import com.indus.veena.models.PlaybackQueue
 import com.indus.veena.models.SongModel
 import com.indus.veena.ui.screens.favourites.FavouritesViewModel
+import com.indus.veena.ui.screens.favourites.toPlaybackSong
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DownloadsScreen(
     paddingValues: PaddingValues,
     onBackClick: () -> Unit,
-    onSongClick: (SongModel) -> Unit,
+    onSongClick: (PlaybackQueue) -> Unit,
     onShowAllFavourites: () -> Unit,
     viewModel: DownloadsViewModel = hiltViewModel(),
     favViewModel: FavouritesViewModel = hiltViewModel()
@@ -80,13 +85,16 @@ fun DownloadsScreen(
     val downloads by viewModel.downloads.collectAsStateWithLifecycle()
     val favourites by favViewModel.favourites.collectAsStateWithLifecycle(emptyList())
 
+    val downloadsSource = stringResource(R.string.downloads)
+    val favouritesSource = stringResource(R.string.favourites)
+
     var songToDelete by remember { mutableStateOf<String?>(null) }
 
     if (songToDelete != null) {
         AlertDialog(
             onDismissRequest = { songToDelete = null },
-            title = { Text("Delete Download") },
-            text = { Text("This will delete the history from here but your file on disk will remain.") },
+            title = { Text(stringResource(R.string.delete_download)) },
+            text = { Text(stringResource(R.string.this_will_delete_the_history_from_here_but_your_file_on_disk_will)) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -94,12 +102,12 @@ fun DownloadsScreen(
                         songToDelete = null
                     }
                 ) {
-                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                    Text(stringResource(R.string.delete), color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { songToDelete = null }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.cancel))
                 }
             }
         )
@@ -108,7 +116,7 @@ fun DownloadsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Library", fontWeight = FontWeight.Bold) },
+                title = { Text(stringResource(R.string.library), fontWeight = FontWeight.Bold) },
             )
         }
     ) { innerPadding ->
@@ -131,12 +139,12 @@ fun DownloadsScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            "Favourites",
+                            stringResource(R.string.favourites),
                             style = MaterialTheme.typography.titleMediumEmphasized,
                             fontWeight = FontWeight.Bold
                         )
                         TextButton(onClick = onShowAllFavourites) {
-                            Text("Show All")
+                            Text(stringResource(R.string.show_all))
                             Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, modifier = Modifier.size(16.dp))
                         }
                     }
@@ -148,7 +156,7 @@ fun DownloadsScreen(
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)
                         ) {
                             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                Text("No favourites yet", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(stringResource(R.string.no_favourites_yet), color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
                     } else {
@@ -171,19 +179,7 @@ fun DownloadsScreen(
                                             state = DownloadState.COMPLETED
                                         ),
                                         onCardClick = {
-                                            onSongClick(SongModel(
-                                                id = fav.songId,
-                                                title = fav.title,
-                                                artist = fav.artist,
-                                                thumbnail = fav.thumbnail,
-                                                duration = fav.duration,
-                                                url = fav.url,
-                                                provider = fav.provider,
-                                                album = fav.album,
-                                                year = fav.year,
-                                                composer = fav.composer,
-                                                genre = fav.genre
-                                            ))
+                                            onSongClick(PlaybackQueue.from(favouritesSource, favourites.map { it.toPlaybackSong() }, fav.toPlaybackSong()))
                                         },
                                         onTogglePause = {},
                                         onCancel = { favViewModel.removeFavourite(fav.songId) }
@@ -197,7 +193,7 @@ fun DownloadsScreen(
 
             item {
                 Text(
-                    "Downloads",
+                    stringResource(R.string.downloads),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(vertical = 8.dp)
@@ -210,7 +206,7 @@ fun DownloadsScreen(
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Icon(Icons.Outlined.Download, null, modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.surfaceVariant)
                             Spacer(Modifier.height(16.dp))
-                            Text("No active downloads", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(stringResource(R.string.no_active_downloads), color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                 }
@@ -221,21 +217,9 @@ fun DownloadsScreen(
                     entity = entity,
                     onCardClick = {
                         if (entity.state == DownloadState.COMPLETED) {
-                            val localSong = SongModel(
-                                id = entity.songId,
-                                title = entity.title,
-                                artist = entity.artist,
-                                thumbnail = entity.artworkUrl,
-                                duration = "0", // Player will resolve actual duration from file
-                                provider = Provider.LOCAL.name, // Marks it as local
-                                url = entity.savedPath,    // The local file path
-                                album = entity.album,
-                                year = entity.year,
-                                extensionName = entity.extensionName,
-                                composer = entity.composer,
-                                genre = entity.genre
-                            )
-                            onSongClick(localSong)
+                            val songs = downloads.filter { it.state == DownloadState.COMPLETED }
+                                .map { it.toPlaybackSong() }
+                            onSongClick(PlaybackQueue.from(downloadsSource, songs, entity.toPlaybackSong()))
                         }
                     },
                     onTogglePause = { viewModel.togglePause(entity.songId, entity.state == DownloadState.DOWNLOADING) },
@@ -261,7 +245,7 @@ fun DownloadItemCard(
     val containerColor = MaterialTheme.colorScheme.surfaceContainer
 
     Card(
-        modifier = Modifier.fillMaxWidth().height(110.dp),
+        modifier = Modifier.fillMaxWidth().height(128.dp),
         shape = RoundedCornerShape(14.dp),
         onClick = { if (entity.state == DownloadState.COMPLETED) onCardClick() },
         colors = CardDefaults.cardColors(containerColor = containerColor),
@@ -283,7 +267,7 @@ fun DownloadItemCard(
                     model = entity.artworkUrl,
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
-                    modifier = Modifier.size(86.dp).clip(RoundedCornerShape(12.dp))
+                    modifier = Modifier.size(72.dp).clip(RoundedCornerShape(12.dp))
                 )
 
                 Spacer(Modifier.width(16.dp))
@@ -307,7 +291,7 @@ fun DownloadItemCard(
                         modifier = Modifier.padding(top = 4.dp)
                     ) {
                         Text(
-                            text = entity.extensionName ?: entity.comment.replace("Veena: ", ""),
+                            text = entity.extensionName.ifBlank { entity.comment.removePrefix("Veena: ") },
                             style = MaterialTheme.typography.labelSmall,
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
                             color = MaterialTheme.colorScheme.onPrimaryContainer
@@ -316,7 +300,7 @@ fun DownloadItemCard(
 
                     if (!isFinished) {
                         Text(
-                            text = "${entity.state.name} · $mbDownloaded / $mbTotal MB",
+                            text = stringResource(R.string.download_size_status, entity.state.localizedLabel(), mbDownloaded, mbTotal),
                             style = MaterialTheme.typography.labelSmall,
                             color = Color.White.copy(alpha = 0.6f)
                         )
@@ -326,26 +310,49 @@ fun DownloadItemCard(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
-                    if (isFinished) {
-                        Icon(Icons.Rounded.CheckCircle, null, tint = containerColor, modifier = Modifier.size(32.dp))
-                    } else {
-                        Box(contentAlignment = Alignment.Center) {
-                            CircularWavyProgressIndicator(
-                                progress = { progress },
-                                modifier = Modifier.size(42.dp),
-                                trackColor = Color.White.copy(alpha = 0.2f),
-                                color = MaterialTheme.colorScheme.primary
+                    Box(modifier = Modifier.size(48.dp), contentAlignment = Alignment.Center) {
+                        when (entity.state) {
+                            DownloadState.COMPLETED -> Icon(
+                                Icons.Rounded.CheckCircle, stringResource(R.string.downloaded),
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(28.dp)
                             )
-                            IconButton(onClick = onTogglePause, modifier = Modifier.size(30.dp)) {
-                                Icon(
-                                    if (entity.state == DownloadState.PAUSED) Icons.Default.PlayArrow else Icons.Default.Pause,
-                                    null, tint = Color.White, modifier = Modifier.size(18.dp)
-                                )
+                            DownloadState.FETCHING, DownloadState.PENDING -> CircularProgressIndicator(
+                                modifier = Modifier.size(28.dp),
+                                color = Color.White,
+                                strokeWidth = 2.dp
+                            )
+                            else -> {
+                                if (entity.state == DownloadState.DOWNLOADING) {
+                                    CircularProgressIndicator(
+                                        progress = { progress.coerceIn(0f, 1f) },
+                                        modifier = Modifier.size(44.dp),
+                                        trackColor = Color.White.copy(alpha = 0.2f),
+                                        color = MaterialTheme.colorScheme.primary,
+                                        strokeWidth = 2.dp
+                                    )
+                                }
+                                IconButton(onClick = onTogglePause) {
+                                    Icon(
+                                        when (entity.state) {
+                                            DownloadState.PAUSED -> Icons.Default.PlayArrow
+                                            DownloadState.FAILED -> Icons.Default.Refresh
+                                            else -> Icons.Default.Pause
+                                        },
+                                        when (entity.state) {
+                                            DownloadState.PAUSED -> stringResource(R.string.resume_download)
+                                            DownloadState.FAILED -> stringResource(R.string.retry_download)
+                                            else -> stringResource(R.string.pause_download)
+                                        },
+                                        tint = Color.White,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                }
                             }
                         }
                     }
-                    IconButton(onClick = onCancel, modifier = Modifier.size(30.dp)) {
-                        Icon(Icons.Default.Delete, "Cancel", tint = Color.Red, modifier = Modifier.size(18.dp))
+                    IconButton(onClick = onCancel, modifier = Modifier.size(48.dp)) {
+                        Icon(Icons.Default.Delete, stringResource(R.string.delete_download_2), tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(22.dp))
                     }
                 }
             }
@@ -361,3 +368,18 @@ fun DownloadItemCard(
         }
     }
 }
+
+private fun DownloadEntity.toPlaybackSong() = SongModel(
+    id = songId,
+    title = title,
+    artist = artist,
+    thumbnail = artworkUrl,
+    duration = "0",
+    provider = Provider.LOCAL.name,
+    url = savedPath,
+    album = album,
+    year = year,
+    extensionName = extensionName,
+    composer = composer,
+    genre = genre
+)

@@ -56,20 +56,22 @@ class ExtensionManager @Inject constructor(
 
     fun getById(id: String): LoadedExtension? = _extensions.value[id]
 
-    suspend fun loadFile(file: File) = withContext(Dispatchers.IO) {
+    suspend fun loadFile(file: File): LoadedExtension = withContext(Dispatchers.IO) {
         try {
             val loaded = when (file.extension.lowercase()) {
                 "js" -> loadJs(file)
                 "veena" -> loadDex(file)
                 else -> throw ExtensionError.ManifestError("Unknown extension type: ${file.extension}")
             }
-            // Unload existing before replacing
-            _extensions.value[loaded.manifest.id]?.addon?.onUnload()
+            loaded.manifest.requireCompatible()
             loaded.addon.onLoad(host)
+            runCatching { _extensions.value[loaded.manifest.id]?.addon?.onUnload() }
             _extensions.update { it + (loaded.manifest.id to loaded) }
             Log.d(TAG, "Loaded extension: ${loaded.manifest.name} v${loaded.manifest.version}")
+            loaded
         } catch (t: Throwable) {
             Log.e(TAG, "Failed to load extension: ${file.name}", t)
+            throw t
         }
     }
 
@@ -84,11 +86,6 @@ class ExtensionManager @Inject constructor(
     }
 
     private fun loadDex(file: File): LoadedExtension {
-        // Must be read-only before DexClassLoader opens it — Android 10+ requirement
-        if (file.canWrite()) {
-            file.setReadOnly()
-        }
-
         val manifest = ZipFile(file).use { zip ->
             val entry = zip.getEntry("assets/manifest.json")
                 ?: throw ExtensionError.ManifestError("Missing assets/manifest.json in ${file.name}")
@@ -100,14 +97,14 @@ class ExtensionManager @Inject constructor(
         val odexDir = File(context.codeCacheDir, "ext_${manifest.id}_${manifest.versionCode}_${file.lastModified()}")
             .also { it.mkdirs() }
 
-        context.codeCacheDir.listFiles()
-            ?.filter { it.isDirectory && it.name.startsWith("ext_${manifest.id}_") && it.name != odexDir.name }
-            ?.forEach { it.deleteRecursively() }
+        // Keep each class loader's archive immutable for its entire lifetime.
+        val dexArchive = File(odexDir, "${java.util.UUID.randomUUID()}.veena")
+        file.copyTo(dexArchive)
+        check(dexArchive.setReadOnly()) { "Cannot protect addon archive" }
 
-        val classLoader = DexClassLoader(
-            file.absolutePath,
+        val classLoader = AddonClassLoader(
+            dexArchive.absolutePath,
             odexDir.absolutePath,
-            null,
             context.classLoader
         )
 

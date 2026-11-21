@@ -10,6 +10,9 @@ sealed interface Screen {
     @Serializable data object SplashScreen: Screen
     @Serializable data object Home : Screen
     @Serializable data object Trending : Screen
+    @Serializable data class DiscoverySong(val song: String) : Screen
+    @Serializable data class Collection(val provider: String, val id: String, val kind: String,
+        val title: String, val thumbnail: String = "") : Screen
     @Serializable data object Settings : Screen
     @Serializable data object Addons : Screen
     @Serializable data object Player : Screen
@@ -20,7 +23,7 @@ sealed interface Screen {
 
 @Stable
 data class BottomNavItem<T : Any>(
-    val name: String,
+    @androidx.annotation.StringRes val name: Int,
     val icon: Int,
     val destination: T,
     val color: Color

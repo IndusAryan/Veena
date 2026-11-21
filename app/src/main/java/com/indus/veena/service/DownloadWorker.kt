@@ -39,6 +39,7 @@ import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
@@ -55,7 +56,8 @@ class DownloadWorker @AssistedInject constructor(
     @Assisted private val context: Context,
     @Assisted workerParams: WorkerParameters,
     private val okHttpClient: OkHttpClient,
-    private val downloadDao: DownloadDao
+    private val downloadDao: DownloadDao,
+    private val repository: com.indus.veena.repository.MusicRepository
 ) : CoroutineWorker(context, workerParams) {
 
     private val notificationManager =
@@ -81,70 +83,65 @@ class DownloadWorker @AssistedInject constructor(
         val rawTitle = downloadEntity.title.ifEmpty { "Unknown_Song_$safeSongId" }
         val safeTitle = rawTitle.replace(Regex("[\\\\/:*?\"<>|]"), "_")
 
-        val requestBuilder = Request.Builder().url(downloadEntity.url)
-        requestBuilder.addHeader("Range", "bytes=0-")
-        downloadEntity.customHeaders.split(";").filter { it.isNotEmpty() }.forEach {
-            val parts = it.split(":", limit = 2)
-            if (parts.size == 2) requestBuilder.addHeader(parts[0].trim(), parts[1].trim())
-        }
 
         try {
             downloadDao.updateState(songId, DownloadState.DOWNLOADING)
-            val response = okHttpClient.newCall(requestBuilder.build()).execute()
+            openDownload(downloadEntity).use { response ->
 
-            if (!response.isSuccessful) {
-                throw IOException("Unexpected code $response")
-            }
+                if (!response.isSuccessful) {
+                    throw IOException("Unexpected code $response")
+                }
 
-            val contentType = response.header("Content-Type", "") ?: ""
-            val contentLength = response.header("Content-Length", "0")?.toLong() ?: 0L
-            VeenaLog.d(
-                TAG,
-                "STAGE 2: Response Received. MIME: $contentType | Size: ${contentLength / 1024} KB"
-            )
-            val extension = when {
-                contentType.contains("webm") || contentType.contains("opus") -> ".webm"
-                contentType.contains("audio/mpeg") -> ".mp3"
-                else -> ".m4a"
-            }
-            val workingFile = File(workDir, "${safeSongId}_raw$extension")
+                val contentType = response.header("Content-Type", "") ?: ""
+                val contentLength = response.body.contentLength().coerceAtLeast(0L)
+                VeenaLog.d(
+                    TAG,
+                    "STAGE 2: Response Received. MIME: $contentType | Size: ${contentLength / 1024} KB"
+                )
+                val extension = when {
+                    contentType.contains("webm") || contentType.contains("opus") -> ".webm"
+                    contentType.contains("audio/mpeg") -> ".mp3"
+                    else -> ".m4a"
+                }
+                val workingFile = File(workDir, "${safeSongId}_raw$extension")
 
-            val body = response.body
-            val totalBytes = body.contentLength()
+                val body = response.body
+                val totalBytes = body.contentLength()
 
-            FileOutputStream(workingFile).use { fos ->
-                body.byteStream().use { inputStream ->
-                    val buffer = ByteArray(8 * 1024)
-                    var bytesRead: Int
-                    var currentDownloaded = 0L
-                    var lastUpdate = System.currentTimeMillis()
+                FileOutputStream(workingFile).use { fos ->
+                    body.byteStream().use { inputStream ->
+                        val buffer = ByteArray(8 * 1024)
+                        var bytesRead: Int
+                        var currentDownloaded = 0L
+                        var lastUpdate = System.currentTimeMillis()
 
-                    while (inputStream.read(buffer).also { bytesRead = it } != -1) {
-                        ensureActive()
-                        fos.write(buffer, 0, bytesRead)
-                        currentDownloaded += bytesRead
+                        while (inputStream.read(buffer).also { bytesRead = it } != -1) {
+                            ensureActive()
+                            fos.write(buffer, 0, bytesRead)
+                            currentDownloaded += bytesRead
 
-                        if (System.currentTimeMillis() - lastUpdate > 500) {
-                            val progress = if (totalBytes > 0)
-                                ((currentDownloaded * 100) / totalBytes).toInt() else 0
-                            downloadDao.updateProgress(
-                                songId,
-                                progress,
-                                currentDownloaded,
-                                totalBytes,
-                                DownloadState.DOWNLOADING
-                            )
-                            setForeground(createForegroundInfo(downloadEntity.title, progress))
-                            lastUpdate = System.currentTimeMillis()
+                            if (System.currentTimeMillis() - lastUpdate > 500) {
+                                val progress = if (totalBytes > 0)
+                                    ((currentDownloaded * 100) / totalBytes).toInt() else 0
+                                downloadDao.updateProgress(
+                                    songId,
+                                    progress,
+                                    currentDownloaded,
+                                    totalBytes,
+                                    DownloadState.DOWNLOADING
+                                )
+                                setForeground(createForegroundInfo(downloadEntity.title, progress))
+                                lastUpdate = System.currentTimeMillis()
+                            }
                         }
                     }
                 }
-            }
 
-            VeenaLog.d(TAG, "STAGE 3: Download complete. Cached at: ${workingFile.absolutePath}")
-            downloadDao.updateProgress(songId, 100, totalBytes, totalBytes, DownloadState.DOWNLOADING)
-            handleConversionAndFinish(songId, safeSongId, workingFile, safeTitle, workDir, downloadEntity)
-            return@withContext Result.success()
+                VeenaLog.d(TAG, "STAGE 3: Download complete. Cached at: ${workingFile.absolutePath}")
+                downloadDao.updateProgress(songId, 100, totalBytes, totalBytes, DownloadState.DOWNLOADING)
+                handleConversionAndFinish(songId, safeSongId, workingFile, safeTitle, workDir, downloadEntity)
+                return@withContext Result.success()
+            }
         } catch (e: CancellationException) {
             VeenaLog.d(TAG, "STAGE 3.1: Download paused/cancelled for [${downloadEntity.title}]")
             downloadDao.updateState(songId, DownloadState.PAUSED)
@@ -155,12 +152,48 @@ class DownloadWorker @AssistedInject constructor(
             withContext(Dispatchers.Main) {
                 Toast.makeText(
                     context,
-                    "Download Failed: ${downloadEntity.title}\n${e.localizedMessage ?: "Unknown error"}",
+                    context.getString(com.indus.veena.R.string.download_failed_song, downloadEntity.title, e.localizedMessage ?: context.getString(com.indus.veena.R.string.unknown_error)),
                     Toast.LENGTH_LONG
                 ).show()
             }
             return@withContext Result.failure()
         }
+    }
+
+    private suspend fun openDownload(entity: DownloadEntity): okhttp3.Response {
+        fun request(url: String, headers: Map<String, String>): okhttp3.Response {
+            val builder = Request.Builder().url(url)
+            headers.forEach { (name, value) -> builder.header(name, value) }
+            return okHttpClient.newCall(builder.build()).execute()
+        }
+        val originalHeaders = entity.customHeaders.split(";").mapNotNull { header ->
+            val parts = header.split(":", limit = 2)
+            if (parts.size == 2) parts[0].trim() to parts[1].trim() else null
+        }.toMap()
+        val first = request(entity.url, originalHeaders)
+        if (!StreamFailurePolicy.shouldRefresh(first.code)) return first
+        val status = first.code
+        first.close()
+        repository.awaitExtensionsLoaded()
+        val providerId = inputData.getString(KEY_PROVIDER_ID)
+            ?: repository.availableProviders.first().firstOrNull {
+                it.name == entity.extensionName || it.id == entity.extensionName
+            }?.id
+            ?: throw IOException("HTTP $status; the source addon is no longer installed")
+        VeenaLog.d(TAG, "HTTP $status; resolving one fresh download stream from $providerId")
+        val details = repository.getSongDetails(entity.songId, providerId, forceRefresh = true)
+            ?: throw IOException(context.getString(com.indus.veena.R.string.download_refresh_failed))
+        val urls = details.streamableUrls
+        val quality = inputData.getString(KEY_QUALITY)
+        val url = (quality?.let { urls[it] } ?: urls["320kbps"] ?: urls["256kbps"]
+            ?: urls["160kbps"] ?: urls["128kbps"] ?: urls.values.firstOrNull())
+            ?.takeIf { it.isNotBlank() } ?: throw IOException(context.getString(com.indus.veena.R.string.download_stream_unavailable))
+        val headers = originalHeaders.filterKeys { key ->
+            !key.equals("Range", true) && !key.equals("User-Agent", true) && !key.equals("Accept-Encoding", true)
+        } + details.downloadHeaders
+        downloadDao.insertOrUpdate(entity.copy(url = url,
+            customHeaders = headers.entries.joinToString(";") { "${it.key}:${it.value}" }, state = DownloadState.DOWNLOADING))
+        return request(url, headers)
     }
 
     private suspend fun handleConversionAndFinish(
@@ -189,7 +222,7 @@ class DownloadWorker @AssistedInject constructor(
         } else {
             VeenaLog.e(TAG, "STAGE 3.6: Transcode failed and source format unusable.")
             downloadDao.updateState(songId, DownloadState.FAILED)
-            return
+            throw IOException(context.getString(com.indus.veena.R.string.download_convert_failed))
         }
 
         // Tag the file while it's still a plain cache file — full random read/write access.
@@ -201,8 +234,7 @@ class DownloadWorker @AssistedInject constructor(
 
         if (publishedUri == null) {
             VeenaLog.e(TAG, "ERROR: Failed to publish file to MediaStore")
-            downloadDao.updateState(songId, DownloadState.FAILED)
-            return
+            throw IOException(context.getString(com.indus.veena.R.string.download_publish_failed))
         }
 
         finishDownload(songId, publishedUri, entity)
@@ -321,7 +353,7 @@ class DownloadWorker @AssistedInject constructor(
             notificationId,
             NotificationCompat.Builder(context, channelId)
                 .setContentTitle(entity.title)
-                .setContentText("Download complete")
+                .setContentText(context.getString(com.indus.veena.R.string.download_complete))
                 .setSmallIcon(android.R.drawable.stat_sys_download_done)
                 .build()
         )
@@ -423,7 +455,7 @@ class DownloadWorker @AssistedInject constructor(
 
     private fun createForegroundInfo(title: String, progress: Int): ForegroundInfo {
         val notification = NotificationCompat.Builder(context, channelId)
-            .setContentTitle("Downloading $title")
+            .setContentTitle(context.getString(com.indus.veena.R.string.downloading_song, title))
             .setProgress(100, progress, false)
             .setSmallIcon(R.drawable.ic_downloading)
             .setOngoing(true)
@@ -492,12 +524,14 @@ class DownloadWorker @AssistedInject constructor(
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel =
-                NotificationChannel(channelId, "Downloads", NotificationManager.IMPORTANCE_LOW)
+                NotificationChannel(channelId, context.getString(com.indus.veena.R.string.downloads), NotificationManager.IMPORTANCE_LOW)
             notificationManager.createNotificationChannel(channel)
         }
     }
 
     companion object {
         const val KEY_SONG_ID = "song_id"
+        const val KEY_PROVIDER_ID = "provider_id"
+        const val KEY_QUALITY = "quality_key"
     }
 }

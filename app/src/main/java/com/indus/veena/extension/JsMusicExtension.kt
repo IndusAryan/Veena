@@ -3,9 +3,8 @@ package com.indus.veena.extension
 import com.dokar.quickjs.QuickJs
 import com.dokar.quickjs.binding.asyncFunction
 import com.dokar.quickjs.binding.function
-import com.indus.veena.contract.ExtSong
+import com.indus.veena.contract.*
 import com.indus.veena.contract.ExtensionHost
-import com.indus.veena.contract.MusicAddon
 import com.indus.veena.di.ExtensionModule.json
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -15,7 +14,7 @@ import kotlinx.coroutines.runBlocking
 
 class JsMusicExtension(
     private val script: String,
-) : MusicAddon {
+) : CatalogAddon {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var quickJs: QuickJs? = null
@@ -57,9 +56,23 @@ class JsMusicExtension(
 
     private inline fun <reified T> executeJs(expression: String): T = runBlocking(scope.coroutineContext) {
         val engine = quickJs ?: throw Exception("JS Context not loaded")
-        val jsonResult = engine.evaluate<String>("JSON.stringify(await $expression)")
+        val jsonResult = engine.evaluate<String>("JSON.stringify(await ($expression))")
         json.decodeFromString<T>(jsonResult)
     }
+
+    override fun discover(): List<com.indus.veena.contract.ExtDiscoverySection> = executeJs("discover()")
+
+    override fun discoverCatalog(): List<ExtCatalogSection> =
+        if (executeJs<Boolean>("typeof discoverCatalog === 'function'")) executeJs("discoverCatalog()")
+        else discover().map { ExtCatalogSection(it.id, it.title, it.subtitle, songs = it.songs) }
+
+    override fun searchCatalog(query: String, page: Int): ExtSearchResults =
+        if (executeJs<Boolean>("typeof searchCatalog === 'function'"))
+            executeJs("searchCatalog(${json.encodeToString(query)}, $page)")
+        else ExtSearchResults(songs = searchSongs(query, page))
+
+    override fun getAlbum(id: String): ExtCollection = executeJs("getAlbum(${json.encodeToString(id)})")
+    override fun getArtist(id: String): ExtCollection = executeJs("getArtist(${json.encodeToString(id)})")
 
     override fun searchSongs(query: String, page: Int): List<ExtSong> {
         val encodedQuery = json.encodeToString(query)
@@ -67,10 +80,10 @@ class JsMusicExtension(
     }
 
     override fun getSongDetails(songId: String): ExtSong {
-        return executeJs("getSongDetails('$songId')")
+        return executeJs("getSongDetails(${json.encodeToString(songId)})")
     }
 
     override fun getStreamUrl(songId: String, quality: String): String {
-        return executeJs("getStreamUrl('$songId', '$quality')")
+        return executeJs("getStreamUrl(${json.encodeToString(songId)}, ${json.encodeToString(quality)})")
     }
 }

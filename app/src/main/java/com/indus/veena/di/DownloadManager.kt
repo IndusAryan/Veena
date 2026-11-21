@@ -10,6 +10,7 @@ import androidx.work.workDataOf
 import com.indus.veena.database.sqlite.daos.DownloadDao
 import com.indus.veena.database.sqlite.entities.DownloadEntity
 import com.indus.veena.database.sqlite.entities.DownloadState
+import com.indus.veena.extension.ExtensionManager
 import com.indus.veena.models.SongModel
 import com.indus.veena.service.DownloadWorker
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -17,12 +18,12 @@ import kotlinx.coroutines.flow.Flow
 import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlin.collections.emptyMap
 
 @Singleton
 class DownloadManager @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val downloadDao: DownloadDao
+    private val downloadDao: DownloadDao,
+    private val extensionManager: ExtensionManager
 ) {
     private val workManager = WorkManager.getInstance(context)
     val activeDownloads: Flow<List<DownloadEntity>> = downloadDao.observeAllDownloads()
@@ -31,16 +32,21 @@ class DownloadManager @Inject constructor(
         song: SongModel,
         streamUrl: String,
         artworkData: ByteArray? = null, // Optional fast-path for image
-        customHeaders: Map<String, String> = mapOf("Range" to "bytes=0-")
+        customHeaders: Map<String, String> = emptyMap()
     ) {
-        val headersString = customHeaders.entries.joinToString(";") { "${it.key}:${it.value}" }
+        val existing = downloadDao.getDownload(song.id)
+        if (existing?.state in listOf(DownloadState.PENDING, DownloadState.DOWNLOADING, DownloadState.COMPLETED)) return
+        val headersString = (song.downloadHeaders + customHeaders).entries.joinToString(";") { "${it.key}:${it.value}" }
 
+        val addonName = extensionManager.getById(song.provider)?.manifest?.name
+            ?: song.extensionName.takeIf { it.isNotBlank() }
+            ?: song.provider
         val entity = DownloadEntity(
             songId = song.id,
             title = song.title,
             url = streamUrl,
             artworkUrl = song.thumbnail,
-            extensionName = song.extensionName,
+            extensionName = addonName,
             artworkData = artworkData,
             customHeaders = headersString,
             artist = song.artist,
@@ -50,14 +56,18 @@ class DownloadManager @Inject constructor(
             genre = song.genre,
             lyricist = song.lyricist ?: "",
             year = song.year,
-            comment = "Veena: ${song.provider.uppercase()}",
+            comment = "Veena: $addonName",
             state = DownloadState.PENDING
         )
         downloadDao.insertOrUpdate(entity)
-        enqueueWork(song.id)
+        enqueueWork(song.id, song.provider, song.streamableUrls.entries.firstOrNull { it.value == streamUrl }?.key)
     }
 
+    suspend fun markFailed(songId: String) { downloadDao.updateState(songId, DownloadState.FAILED) }
+
     suspend fun prepareDownloadEntry(song: SongModel) {
+        val existing = downloadDao.getDownload(song.id)
+        if (existing?.state in listOf(DownloadState.PENDING, DownloadState.DOWNLOADING, DownloadState.COMPLETED)) return
         val entity = DownloadEntity(
             songId = song.id,
             title = song.title,
@@ -90,8 +100,9 @@ class DownloadManager @Inject constructor(
         downloadDao.delete(songId)
     }
 
-    private fun enqueueWork(songId: String) {
-        val inputData = workDataOf(DownloadWorker.KEY_SONG_ID to songId)
+    private fun enqueueWork(songId: String, provider: String? = null, qualityKey: String? = null) {
+        val inputData = workDataOf(DownloadWorker.KEY_SONG_ID to songId,
+            DownloadWorker.KEY_PROVIDER_ID to provider, DownloadWorker.KEY_QUALITY to qualityKey)
         val request = OneTimeWorkRequestBuilder<DownloadWorker>()
             .setConstraints(
                 Constraints.Builder()

@@ -13,6 +13,8 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
@@ -33,6 +35,7 @@ data class LocalAddonItem(
 
 @HiltViewModel
 class AddonsViewModel @Inject constructor(
+    @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context,
     private val storeManager: ExtensionStoreManager,
     extensionManager: ExtensionManager
 ) : ViewModel() {
@@ -43,7 +46,7 @@ class AddonsViewModel @Inject constructor(
     private val _isRefreshing = MutableStateFlow(false)
     val isRefreshing = _isRefreshing.asStateFlow()
 
-    private val _uiEvent = Channel<String>()
+    private val _uiEvent = Channel<String>(Channel.BUFFERED)
     val uiEvent = _uiEvent.receiveAsFlow()
 
     val downloadProgress: StateFlow<Map<String, Float>> = storeManager.downloadProgress
@@ -74,7 +77,7 @@ class AddonsViewModel @Inject constructor(
         viewModelScope.launch {
             combine(localInstalledAddons, catalog) { installed, remoteCatalog ->
                 Pair(installed, remoteCatalog)
-            }.collect { (installed, remoteCatalog) ->
+            }.collectLatest { (installed, remoteCatalog) ->
                 checkUpdates(installed, remoteCatalog)
             }
         }
@@ -86,9 +89,10 @@ class AddonsViewModel @Inject constructor(
             _isRefreshing.value = true
             try {
                 _catalog.value = storeManager.fetchCatalog()
-                checkUpdates(localInstalledAddons.value, _catalog.value)
+            } catch (e: CancellationException) {
+                throw e
             } catch (t: Throwable) {
-                _uiEvent.send("Failed to refresh catalog: ${t.localizedMessage}")
+                _uiEvent.send(context.getString(com.indus.veena.R.string.catalog_refresh_failed, t.localizedMessage.orEmpty()))
             } finally {
                 _isRefreshing.value = false
             }
@@ -96,30 +100,20 @@ class AddonsViewModel @Inject constructor(
     }
 
     private suspend fun checkUpdates(installed: List<LocalAddonItem>, remoteCatalog: List<CatalogExtensionItem>) {
+        _updateStatusMap.update { status -> status.filterKeys { id -> installed.any { it.id == id } } }
         installed.forEach { addon ->
             val catalogItem = remoteCatalog.find { it.id == addon.id }
-            val downloadUrl = catalogItem?.downloadUrl ?: ""
+            val downloadUrl = addon.updateUrl.ifBlank { catalogItem?.downloadUrl.orEmpty() }
 
             if (downloadUrl.contains("github.com")) {
                 val info = storeManager.fetchGithubUpdateInfo(downloadUrl, addon.id)
-                if (info != null && compareVersions(info.version, addon.version)) {
+                if (info != null && info.versionCode > addon.versionCode) {
                     _updateStatusMap.update { it + (addon.id to info) }
+                } else {
+                    _updateStatusMap.update { it - addon.id }
                 }
             }
         }
-    }
-
-    private fun compareVersions(remote: String, local: String): Boolean {
-        val rParts = remote.removePrefix("v").split(".").mapNotNull { it.toIntOrNull() }
-        val lParts = local.removePrefix("v").split(".").mapNotNull { it.toIntOrNull() }
-        val size = maxOf(rParts.size, lParts.size)
-        for (i in 0 until size) {
-            val r = rParts.getOrElse(i) { 0 }
-            val l = lParts.getOrElse(i) { 0 }
-            if (r > l) return true
-            if (l > r) return false
-        }
-        return false
     }
 
     fun installAddon(id: String, downloadUrl: String, name: String = id) {
@@ -138,11 +132,13 @@ class AddonsViewModel @Inject constructor(
                 capabilities = emptyList()
             )
             try {
-                storeManager.installExtension(mockItem)
+                val updated = storeManager.installExtension(mockItem)
                 _updateStatusMap.update { it - id }
-                _uiEvent.send("Successfully installed $name")
+                if (!updated) _uiEvent.send(context.getString(com.indus.veena.R.string.addon_installed, name))
+            } catch (e: CancellationException) {
+                throw e
             } catch (t: Throwable) {
-                _uiEvent.send("Failed to install $name: ${t.localizedMessage}")
+                _uiEvent.send(context.getString(com.indus.veena.R.string.addon_install_failed, name, t.localizedMessage.orEmpty()))
                 refreshCatalog()
             }
         }
@@ -153,9 +149,11 @@ class AddonsViewModel @Inject constructor(
             try {
                 storeManager.deleteExtension(id)
                 _updateStatusMap.update { it - id }
-                _uiEvent.send("Uninstalled $name")
+                _uiEvent.send(context.getString(com.indus.veena.R.string.addon_uninstalled, name))
+            } catch (e: CancellationException) {
+                throw e
             } catch (t: Throwable) {
-                _uiEvent.send("Failed to delete $name")
+                _uiEvent.send(context.getString(com.indus.veena.R.string.addon_delete_failed, name))
                 refreshCatalog()
             }
         }

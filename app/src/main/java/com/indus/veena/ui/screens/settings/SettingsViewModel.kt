@@ -26,6 +26,13 @@ class SettingsViewModel @Inject constructor(
     musicRepository: MusicRepository
     ): ViewModel() {
 
+    val autoUpdateAddons = dataStore.data.map { it[DataStoreKeys.AUTO_UPDATE_ADDONS] ?: false }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    fun setAutoUpdateAddons(enabled: Boolean) = viewModelScope.launch {
+        dataStore.edit { it[DataStoreKeys.AUTO_UPDATE_ADDONS] = enabled }
+    }
+
     suspend fun getInitialSettings(): InitialSettings {
         val prefs = dataStore.data.first()
         val theme = prefs[DataStoreKeys.APP_THEME_KEY] ?: DataStoreKeys.AppTheme.SYSTEM.name

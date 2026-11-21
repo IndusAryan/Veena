@@ -13,6 +13,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class DebugViewModel @Inject constructor(
+    @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context,
     private val backupRestoreManager: BackupRestoreManager
 ) : ViewModel() {
     private val _operationState = MutableStateFlow<OperationState>(OperationState.Idle)
@@ -23,9 +24,9 @@ class DebugViewModel @Inject constructor(
             _operationState.value = OperationState.Loading
             val result = backupRestoreManager.exportData(uri)
             _operationState.value = if (result.isSuccess) {
-                OperationState.Success("Backup Saved Successfully")
+                OperationState.Success(context.getString(com.indus.veena.R.string.backup_saved))
             } else {
-                OperationState.Error(result.exceptionOrNull()?.message ?: "Backup Failed")
+                OperationState.Error(result.exceptionOrNull()?.message ?: context.getString(com.indus.veena.R.string.backup_failed))
             }
         }
     }
@@ -35,9 +36,9 @@ class DebugViewModel @Inject constructor(
             _operationState.value = OperationState.Loading
             val result = backupRestoreManager.importData(uri)
             _operationState.value = if (result.isSuccess) {
-                OperationState.Success("Data Restored Successfully")
+                OperationState.Success(context.getString(com.indus.veena.R.string.restore_saved))
             } else {
-                OperationState.Error(result.exceptionOrNull()?.message ?: "Restore Failed")
+                OperationState.Error(result.exceptionOrNull()?.message ?: context.getString(com.indus.veena.R.string.restore_failed))
             }
         }
     }

@@ -1,5 +1,6 @@
 package com.indus.veena.ui.screens.splash
 
+import androidx.compose.ui.res.stringResource
 import android.app.Activity
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.EaseIn
@@ -33,11 +34,13 @@ import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.asAndroidPath
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.AnnotatedString
@@ -58,15 +61,6 @@ import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.math.sqrt
 
-// ─────────────────────────────────────────────────────────────
-//  VolumetricSplashScreen
-//  Cinematic 5-phase logo reveal:
-//   0 → Darkness / ambient pulse
-//   1 → God rays sweep + logo edge scatter
-//   2 → Ray bloom peak
-//   3 → Rays fade, crisp white logo materialises
-//   4 → Hold → exit
-// ─────────────────────────────────────────────────────────────
 @Composable
 fun VolumetricSplashScreen(onSplashComplete: () -> Unit) {
 
@@ -83,17 +77,14 @@ fun VolumetricSplashScreen(onSplashComplete: () -> Unit) {
         }
     }
 
-    // ── Palette ──────────────────────────────────────────────
     val black       = Color(0xFF000000)
     val deepPurple  = Color(0xFF4B0082)
     val violet      = Color(0xFFAA44FF)
     val lavender    = Color(0xFFD8BFD8)
     val pureWhite   = Color(0xFFFFFFFF)
 
-    // ── Phase tracker (0‥4) ──────────────────────────────────
     var phase by remember { mutableIntStateOf(0) }
 
-    // ── Per-ray independent rotation ─────────────────────────
     val infiniteTransition = rememberInfiniteTransition(label = "rays")
 
     val rayDefs = remember {
@@ -122,7 +113,6 @@ fun VolumetricSplashScreen(onSplashComplete: () -> Unit) {
 
     val rayAngles = listOf(ray0, ray1, ray2, ray3, ray4, ray5, ray6, ray7, ray8)
 
-    // ── Phase-driven animatables ──────────────────────────────
     val ambientPulse   = remember { Animatable(0f) }
     val rayIntensity   = remember { Animatable(0f) }
     val bloomScale     = remember { Animatable(0f) }
@@ -143,80 +133,78 @@ fun VolumetricSplashScreen(onSplashComplete: () -> Unit) {
         }
     }
 
-    // ── Density helper ────────────────────────────────────────
     val density = LocalDensity.current
 
-    // ── Optimized Paint & Filter Resources ──────────────────
     val hazeFilter = remember(density) {
         android.graphics.BlurMaskFilter(with(density) { 40.dp.toPx() }, android.graphics.BlurMaskFilter.Blur.NORMAL)
     }
     val coreFilter = remember(density) {
         android.graphics.BlurMaskFilter(with(density) { 14.dp.toPx() }, android.graphics.BlurMaskFilter.Blur.NORMAL)
     }
-    val paintHaze = remember { Paint().apply { asFrameworkPaint().isAntiAlias = true } }
-    val paintCore = remember { Paint().apply { asFrameworkPaint().isAntiAlias = true } }
+    val paintHaze = remember {
+        android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+            style = android.graphics.Paint.Style.FILL
+        }
+    }
+    val paintCore = remember {
+        android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+            style = android.graphics.Paint.Style.FILL
+        }
+    }
 
-    // ── Sequence ─────────────────────────────────────────────
     LaunchedEffect(Unit) {
-        // ─ Phase 0: Ambient pulse ─────────
         phase = 0
         launch {
-            ambientPulse.animateTo(0.18f, tween(500, easing = EaseInOut))
+            ambientPulse.animateTo(0.18f, tween(450, easing = EaseInOut))
         }
-        delay(300)
+        delay(250)
 
-        // ─ Phase 1: God rays ignite + Deluxe write-on ───────────
         phase = 1
         launch {
-            rayIntensity.animateTo(1f, tween(800, easing = FastOutSlowInEasing))
+            rayIntensity.animateTo(1f, tween(700, easing = FastOutSlowInEasing))
         }
         launch {
-            bloomScale.animateTo(1f, tween(800, easing = FastOutSlowInEasing))
+            bloomScale.animateTo(1f, tween(700, easing = FastOutSlowInEasing))
         }
         launch {
-            logoGlowAlpha.animateTo(1f, tween(600, easing = EaseIn))
+            logoGlowAlpha.animateTo(1f, tween(500, easing = EaseIn))
         }
-        // Deluxe starts writing just as rays begin to appear
         launch {
-            deluxeProgress.animateTo(1f, tween(1100, easing = FastOutSlowInEasing))
+            deluxeProgress.animateTo(1f, tween(950, easing = FastOutSlowInEasing))
         }
-        delay(200)
+        delay(150)
         launch {
-            scatterBurst.animateTo(1f, tween(700, easing = EaseOut))
+            scatterBurst.animateTo(1f, tween(600, easing = EaseOut))
         }
-        delay(500)
+        delay(450)
 
-        // ─ Phase 2: Ray peak – hold ────────────────────────────
         phase = 2
         rayAlpha.snapTo(1f)
-        delay(200)
+        delay(150)
 
-        // ─ Phase 3: Rays fade out, crisp logo materialises ────
         phase = 3
         launch {
-            rayIntensity.animateTo(0f, tween(600, easing = EaseIn))
+            rayIntensity.animateTo(0f, tween(500, easing = EaseIn))
         }
         launch {
-            rayAlpha.animateTo(0f, tween(600, easing = EaseIn))
+            rayAlpha.animateTo(0f, tween(500, easing = EaseIn))
         }
         launch {
-            bloomScale.animateTo(0f, tween(600, easing = EaseIn))
+            bloomScale.animateTo(0f, tween(500, easing = EaseIn))
         }
         launch {
-            logoGlowAlpha.animateTo(0.45f, tween(400, easing = EaseIn))
+            logoGlowAlpha.animateTo(0.45f, tween(350, easing = EaseIn))
         }
         launch {
-            logoFillAlpha.animateTo(1f, tween(500, easing = EaseOut))
+            logoFillAlpha.animateTo(1f, tween(450, easing = EaseOut))
         }
-        delay(750)
+        delay(650)
 
-        // ─ Phase 4: Hold → exit ────────────────────────────────
         phase = 4
-        delay(300)
+        delay(250)
         onSplashComplete()
     }
 
-    // ── Render ────────────────────────────────────────────────
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -229,7 +217,6 @@ fun VolumetricSplashScreen(onSplashComplete: () -> Unit) {
             val cy = size.height / 2f
             val maxR = sqrt(cx * cx + cy * cy)
 
-            // ── 1. Ambient vignette pulse ─────────────────────
             if (ambientPulse.value > 0f) {
                 drawCircle(
                     brush = Brush.radialGradient(
@@ -245,7 +232,6 @@ fun VolumetricSplashScreen(onSplashComplete: () -> Unit) {
                 )
             }
 
-            // ── 2. God rays ─────────────────
             if (rayIntensity.value > 0f && rayAlpha.value > 0f) {
                 val brightnessLevels = listOf(1f, 0.5f, 0.75f, 0.35f, 0.9f, 0.45f, 0.65f, 0.3f, 0.8f)
                 val coneHalfAngles   = listOf(14.0, 8.0, 18.0, 10.0, 12.0, 7.0, 16.0, 9.0, 13.0)
@@ -269,13 +255,13 @@ fun VolumetricSplashScreen(onSplashComplete: () -> Unit) {
                         close()
                     }
 
-                    paintHaze.color = violet.copy(alpha = baseAlpha * 0.6f)
-                    paintHaze.asFrameworkPaint().maskFilter = hazeFilter
-                    paintCore.color = lavender.copy(alpha = baseAlpha * 0.4f)
-                    paintCore.asFrameworkPaint().maskFilter = coreFilter
+                    paintHaze.color = violet.copy(alpha = baseAlpha * 0.6f).toArgb()
+                    paintHaze.maskFilter = hazeFilter
+                    paintCore.color = lavender.copy(alpha = baseAlpha * 0.4f).toArgb()
+                    paintCore.maskFilter = coreFilter
 
-                    drawContext.canvas.drawPath(path, paintHaze)
-                    drawContext.canvas.drawPath(path, paintCore)
+                    drawContext.canvas.nativeCanvas.drawPath(path.asAndroidPath(), paintHaze)
+                    drawContext.canvas.nativeCanvas.drawPath(path.asAndroidPath(), paintCore)
                 }
 
                 drawCircle(
@@ -293,7 +279,6 @@ fun VolumetricSplashScreen(onSplashComplete: () -> Unit) {
                 )
             }
 
-            // ── 3. Scatter particles ──────────────────────────
             if (scatterBurst.value > 0f) {
                 val maxDist = maxR * 0.55f * scatterBurst.value
                 particles.forEach { p ->
@@ -313,7 +298,6 @@ fun VolumetricSplashScreen(onSplashComplete: () -> Unit) {
             }
         }
 
-        // ── Text layer ────────────────────────────────────────
         Column(
             horizontalAlignment = Alignment.End,
             verticalArrangement = Arrangement.Center
@@ -321,7 +305,7 @@ fun VolumetricSplashScreen(onSplashComplete: () -> Unit) {
             Box(contentAlignment = Alignment.Center) {
                 if (logoGlowAlpha.value > 0f && bloomScale.value > 0f) {
                     androidx.compose.foundation.text.BasicText(
-                        text = AnnotatedString("VEENA"),
+                        text = AnnotatedString(stringResource(R.string.veena)),
                         style = TextStyle(
                             fontSize     = 72.sp,
                             fontWeight   = FontWeight.ExtraBold,
@@ -341,7 +325,7 @@ fun VolumetricSplashScreen(onSplashComplete: () -> Unit) {
 
                 if (logoFillAlpha.value < 1f) {
                     androidx.compose.foundation.text.BasicText(
-                        text = AnnotatedString("VEENA"),
+                        text = AnnotatedString(stringResource(R.string.veena)),
                         style = TextStyle(
                             fontSize      = 72.sp,
                             fontWeight    = FontWeight.ExtraBold,
@@ -356,7 +340,7 @@ fun VolumetricSplashScreen(onSplashComplete: () -> Unit) {
                 }
 
                 androidx.compose.foundation.text.BasicText(
-                    text = AnnotatedString("VEENA"),
+                    text = AnnotatedString(stringResource(R.string.veena)),
                     style = TextStyle(
                         fontSize      = 72.sp,
                         fontWeight    = FontWeight.ExtraBold,
@@ -368,7 +352,7 @@ fun VolumetricSplashScreen(onSplashComplete: () -> Unit) {
             }
 
             androidx.compose.foundation.text.BasicText(
-                text = AnnotatedString("Deluxe"),
+                text = AnnotatedString(stringResource(R.string.deluxe)),
                 style = TextStyle(
                     fontSize   = 38.sp,
                     fontFamily = FontFamily(Font(R.font.playfair_display_variable)),

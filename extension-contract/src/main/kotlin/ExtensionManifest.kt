@@ -41,6 +41,12 @@ data class ExtensionManifest(
     companion object {
         const val CURRENT_API_VERSION = 1
     }
+    fun requireCompatible(expectedId: String = id) {
+        require(id.matches(Regex("[a-z0-9_]+"))) { "Invalid addon ID" }
+        require(id == expectedId) { "Expected addon $expectedId, received $id" }
+        require(apiVersion == CURRENT_API_VERSION) { "Addon requires an unsupported API version" }
+        require(versionCode > 0) { "Invalid addon version code" }
+    }
     fun supports(cap: String) = cap in capabilities
     fun isNewerThan(other: ExtensionManifest) = versionCode > other.versionCode
 }

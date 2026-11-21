@@ -1,5 +1,7 @@
 package com.indus.veena.ui.screens.addons
 
+import com.indus.veena.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -92,21 +94,21 @@ fun AddonsScreen(
         }
     }
     var selectedTab by remember { mutableIntStateOf(0) }
-    val tabs = listOf("Installed", "Official", "Community")
+    val tabs = listOf(stringResource(R.string.installed), stringResource(R.string.official), stringResource(R.string.community))
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text("Addon Manager", fontWeight = FontWeight.Bold) },
+                title = { Text(stringResource(R.string.addon_manager), fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
                 actions = {
                     IconButton(onClick = { viewModel.refreshCatalog() }) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Refresh Catalog")
+                        Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.refresh_catalog))
                     }
                 }
             )
@@ -142,13 +144,13 @@ fun AddonsScreen(
                 when (selectedTab) {
                     0 -> {
                         if (localInstalled.isEmpty()) {
-                            EmptyStatePlaceholder("No addons installed locally.")
+                            EmptyStatePlaceholder(stringResource(R.string.no_addons_installed_locally))
                         } else {
                             LazyColumn(
                                 contentPadding = PaddingValues(16.dp),
                                 verticalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
-                                items(localInstalled, key = { it.id }) { item ->
+                                items(localInstalled, key = { it.id }, contentType = { "installed-addon" }) { item ->
                                     val progress = downloadProgress[item.id]
                                     val updateInfo = updateStatusMap[item.id]
                                     val associatedCatalogItem = catalog.find { it.id == item.id }
@@ -159,9 +161,9 @@ fun AddonsScreen(
                                         isOfficial = associatedCatalogItem?.isOfficial ?: false,
                                         updateVersion = updateInfo?.version,
                                         downloadProgress = progress,
-                                        onUpdate = { updateInfo?.let { viewModel.installAddon(item.id, it.downloadUrl) } },
-                                        onRedownload = { viewModel.installAddon(item.id, associatedCatalogItem?.downloadUrl ?: "") },
-                                        onDelete = { viewModel.deleteAddon(item.id) }
+                                        onUpdate = { updateInfo?.let { viewModel.installAddon(item.id, it.downloadUrl, item.name) } },
+                                        onRedownload = { viewModel.installAddon(item.id, associatedCatalogItem?.downloadUrl ?: "", item.name) },
+                                        onDelete = { viewModel.deleteAddon(item.id, item.name) }
                                     )
                                 }
                             }
@@ -169,7 +171,11 @@ fun AddonsScreen(
                     }
                     1 -> {
                         val officialList = catalog.filter { it.isOfficial }
-                        StoreAddonList(officialList, localInstalled, downloadProgress, updateStatusMap, viewModel::installAddon, viewModel::deleteAddon)
+                        if (officialList.isEmpty() && !isRefreshing) {
+                            EmptyStatePlaceholder(stringResource(R.string.official_addons_are_not_available_as_of_now))
+                        } else {
+                            StoreAddonList(officialList, localInstalled, downloadProgress, updateStatusMap, viewModel::installAddon, viewModel::deleteAddon)
+                        }
                     }
                     2 -> {
                         val communityList = catalog.filter { !it.isOfficial }
@@ -187,14 +193,14 @@ fun StoreAddonList(
     installedList: List<LocalAddonItem>,
     downloadProgress: Map<String, Float>,
     updateStatusMap: Map<String, UpdateInfo>,
-    onInstall: (String, String) -> Unit,
-    onDelete: (String) -> Unit
+    onInstall: (String, String, String) -> Unit,
+    onDelete: (String, String) -> Unit
 ) {
     LazyColumn(
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        items(items, key = { it.id }) { item ->
+        items(items, key = { it.id }, contentType = { "store-addon" }) { item ->
             val isInstalled = installedList.any { it.id == item.id }
             val updateInfo = updateStatusMap[item.id]
 
@@ -203,8 +209,8 @@ fun StoreAddonList(
                 isInstalled = isInstalled,
                 updateVersion = updateInfo?.version,
                 downloadProgress = downloadProgress[item.id],
-                onInstall = { onInstall(item.id, updateInfo?.downloadUrl ?: item.downloadUrl) },
-                onDelete = { onDelete(item.id) }
+                onInstall = { onInstall(item.id, updateInfo?.downloadUrl ?: item.downloadUrl, item.name) },
+                onDelete = { onDelete(item.id, item.name) }
             )
         }
     }
@@ -266,7 +272,7 @@ fun LocalAddonCard(
                         }
                     }
                     Text(
-                        text = "v${item.version} • ${item.author}",
+                        text = stringResource(R.string.addon_version_author, item.version, item.author),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                     )
@@ -275,11 +281,15 @@ fun LocalAddonCard(
                 Spacer(Modifier.width(8.dp))
 
                 if (downloadProgress != null) {
-                    CircularProgressIndicator(
-                        progress = { downloadProgress },
-                        modifier = Modifier.size(28.dp),
-                        strokeWidth = 3.dp
-                    )
+                    if (downloadProgress > 0f) {
+                        CircularProgressIndicator(
+                            progress = { downloadProgress },
+                            modifier = Modifier.size(28.dp),
+                            strokeWidth = 3.dp
+                        )
+                    } else {
+                        CircularProgressIndicator(modifier = Modifier.size(28.dp), strokeWidth = 3.dp)
+                    }
                 } else {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         if (updateVersion != null) {
@@ -291,15 +301,15 @@ fun LocalAddonCard(
                             ) {
                                 Icon(imageVector = Icons.Default.SystemUpdate, contentDescription = null, modifier = Modifier.size(14.dp))
                                 Spacer(Modifier.width(4.dp))
-                                Text("Update", style = MaterialTheme.typography.labelMedium)
+                                Text(stringResource(R.string.update), style = MaterialTheme.typography.labelMedium)
                             }
                         } else {
                             IconButton(onClick = onRedownload) {
-                                Icon(imageVector = Icons.Default.Replay, contentDescription = "Redownload", tint = MaterialTheme.colorScheme.primary)
+                                Icon(imageVector = Icons.Default.Replay, contentDescription = stringResource(R.string.redownload), tint = MaterialTheme.colorScheme.primary)
                             }
                         }
                         IconButton(onClick = onDelete) {
-                            Icon(imageVector = Icons.Default.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error)
+                            Icon(imageVector = Icons.Default.Delete, contentDescription = stringResource(R.string.delete), tint = MaterialTheme.colorScheme.error)
                         }
                     }
                 }
@@ -370,17 +380,21 @@ fun StoreAddonCard(
                             Surface(shape = CircleShape, color = MaterialTheme.colorScheme.primaryContainer, modifier = Modifier.size(14.dp)) {}
                         }
                     }
-                    Text(text = "v${item.version} • ${item.author} • ${item.size}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f))
+                    Text(text = stringResource(R.string.addon_version_author_size, item.version, item.author, item.size), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f))
                 }
 
                 Spacer(Modifier.width(8.dp))
 
                 if (downloadProgress != null) {
-                    CircularProgressIndicator(
-                        progress = { downloadProgress },
-                        modifier = Modifier.size(28.dp),
-                        strokeWidth = 3.dp
-                    )
+                    if (downloadProgress > 0f) {
+                        CircularProgressIndicator(
+                            progress = { downloadProgress },
+                            modifier = Modifier.size(28.dp),
+                            strokeWidth = 3.dp
+                        )
+                    } else {
+                        CircularProgressIndicator(modifier = Modifier.size(28.dp), strokeWidth = 3.dp)
+                    }
                 } else {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         if (updateVersion != null) {
@@ -392,7 +406,7 @@ fun StoreAddonCard(
                             ) {
                                 Icon(imageVector = Icons.Default.SystemUpdate, contentDescription = null, modifier = Modifier.size(14.dp))
                                 Spacer(Modifier.width(4.dp))
-                                Text("Update", style = MaterialTheme.typography.labelMedium)
+                                Text(stringResource(R.string.update), style = MaterialTheme.typography.labelMedium)
                             }
                         } else if (!isInstalled) {
                             Button(
@@ -402,14 +416,14 @@ fun StoreAddonCard(
                             ) {
                                 Icon(imageVector = Icons.Default.Download, contentDescription = null, modifier = Modifier.size(14.dp))
                                 Spacer(Modifier.width(4.dp))
-                                Text("Install", style = MaterialTheme.typography.labelMedium)
+                                Text(stringResource(R.string.install), style = MaterialTheme.typography.labelMedium)
                             }
                         }
 
                         if (isInstalled) {
                             Spacer(Modifier.width(4.dp))
                             IconButton(onClick = onDelete) {
-                                Icon(imageVector = Icons.Default.Delete, contentDescription = "Uninstall Addon", tint = MaterialTheme.colorScheme.error.copy(alpha = 0.8f))
+                                Icon(imageVector = Icons.Default.Delete, contentDescription = stringResource(R.string.uninstall_addon), tint = MaterialTheme.colorScheme.error.copy(alpha = 0.8f))
                             }
                         }
                     }

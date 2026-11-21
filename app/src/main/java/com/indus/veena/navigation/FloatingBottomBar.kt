@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CircleShape
@@ -45,19 +46,20 @@ import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.indus.veena.R
+import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.HazeStyle
-import dev.chrisbanes.haze.HazeTint
-import dev.chrisbanes.haze.hazeEffect
+import dev.chrisbanes.haze.blur.HazeBlurStyle
+import dev.chrisbanes.haze.blur.HazeColorEffect
+import dev.chrisbanes.haze.blur.hazeBlur
 
 @Composable
 fun FloatingBottomBar(navController: NavHostController, hazeState: HazeState) {
     val items = remember {
         listOf(
-            BottomNavItem("Home", R.drawable.ic_home, Screen.Home, Color(0xFF56CCF2)),
-          //  BottomNavItem("Trending", Icons.Default.Whatshot, Screen.Trending, Color(0xFFFF5F6D)),
-            BottomNavItem("Downloads", R.drawable.ic_music_library, Screen.Downloads, Color(0xFFBB86FC)),
-            BottomNavItem("Settings", R.drawable.ic_setting, Screen.Settings, Color(0xFF6FCF97))
+            BottomNavItem(R.string.home, R.drawable.ic_search_2, Screen.Home, Color(0xFF56CCF2)),
+            BottomNavItem(R.string.discover, R.drawable.ic_explore, Screen.Trending, Color(0xFFFF5F6D)),
+            BottomNavItem(R.string.downloads, R.drawable.ic_music_library, Screen.Downloads, Color(0xFFBB86FC)),
+            BottomNavItem(R.string.settings, R.drawable.ic_setting, Screen.Settings, Color(0xFF6FCF97))
         )
     }
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -81,7 +83,7 @@ fun FloatingBottomBar(navController: NavHostController, hazeState: HazeState) {
     Box(
         modifier = Modifier
             .padding(bottom = 12.dp)
-            .fillMaxWidth(0.6f)
+            .width(224.dp)
             .height(64.dp)
             .shadow(
                 elevation = 20.dp,
@@ -89,12 +91,12 @@ fun FloatingBottomBar(navController: NavHostController, hazeState: HazeState) {
                 ambientColor = Color.Black.copy(alpha = 0.6f),
                 spotColor = animatedColor.copy(alpha = 0.3f)
             )
-            .hazeEffect(
-                state = hazeState,
-                style = HazeStyle(
-                    tint = HazeTint(Color.Black.copy(alpha = 0.3f)),
-                    blurRadius = 20.dp
-                )
+            .hazeBlur(
+                input = HazeInput.Sources(hazeState),
+                style = HazeBlurStyle {
+                    blurRadius(20.dp)
+                    colorEffects(listOf(HazeColorEffect.tint(Color.Black.copy(alpha = 0.3f))))
+                }
             )
             .border(
                 width = 0.5.dp,
@@ -182,7 +184,7 @@ fun FloatingBottomBar(navController: NavHostController, hazeState: HazeState) {
                     ) {
                         Icon(
                             imageVector = ImageVector.vectorResource(item.icon),
-                            contentDescription = item.name,
+                            contentDescription = androidx.compose.ui.res.stringResource(item.name),
                             tint = if (isSelected) Color.White else Color.White.copy(0.7f)
                         )
                     }

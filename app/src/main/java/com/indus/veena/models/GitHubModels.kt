@@ -12,11 +12,14 @@ data class GithubRelease(
 data class GithubAsset(
     val name: String,
     val size: Long,
-    val browser_download_url: String
+    val browser_download_url: String,
+    val id: Long = 0,
+    val updated_at: String = ""
 )
 
 data class UpdateInfo(
     val version: String,
     val downloadUrl: String,
-    val size: String
+    val size: String,
+    val versionCode: Int = 0
 )

@@ -25,15 +25,15 @@ val YellowDrape     = Color(0xFFF9A825)
 val GreenBenzaiten  = Color(0xFF96D5A6)
 val GoldCrown       = Color(0xFFFFB300)
 
-enum class VeenaAccent(val color: Color, val displayName: String) {
-    MATERIAL_YOU(Color.Unspecified, "Material You"),
-    PINK_LOTUS(PinkLotus, "Pink Lotus"),
-    BEIGE_MANUSCRIPT(BeigeManuscript, "Beige Script"),
-    BLUE_WATER(BlueWater, "Blue Sea"),
-    BROWN_POT(BrownPot, "Brown Pot"),
-    YELLOW_DRAPE(YellowDrape, "Yellow Drape"),
-    GREEN_BENZAITEN(GreenBenzaiten, "Green Benzaiten"),
-    GOLD_CROWN(GoldCrown, "Gold Crown")
+enum class VeenaAccent(val color: Color, @androidx.annotation.StringRes val labelRes: Int) {
+    MATERIAL_YOU(Color.Unspecified, com.indus.veena.R.string.material_you),
+    PINK_LOTUS(PinkLotus, com.indus.veena.R.string.pink_lotus),
+    BEIGE_MANUSCRIPT(BeigeManuscript, com.indus.veena.R.string.beige_script),
+    BLUE_WATER(BlueWater, com.indus.veena.R.string.blue_sea),
+    BROWN_POT(BrownPot, com.indus.veena.R.string.brown_pot),
+    YELLOW_DRAPE(YellowDrape, com.indus.veena.R.string.yellow_drape),
+    GREEN_BENZAITEN(GreenBenzaiten, com.indus.veena.R.string.green_benzaiten),
+    GOLD_CROWN(GoldCrown, com.indus.veena.R.string.gold_crown)
 }
 
 private object PinkLotusScheme {

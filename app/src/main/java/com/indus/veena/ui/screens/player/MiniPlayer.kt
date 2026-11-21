@@ -1,5 +1,7 @@
 package com.indus.veena.ui.screens.player
 
+import com.indus.veena.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -41,11 +43,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.HazeStyle
-import dev.chrisbanes.haze.HazeTint
-import dev.chrisbanes.haze.hazeChild
-import dev.chrisbanes.haze.hazeEffect
+import dev.chrisbanes.haze.blur.HazeBlurStyle
+import dev.chrisbanes.haze.blur.HazeColorEffect
+import dev.chrisbanes.haze.blur.hazeBlur
 
 @Composable
 fun MiniPlayer(
@@ -72,20 +74,13 @@ fun MiniPlayer(
             .height(68.dp)
             .clip(RoundedCornerShape(22.dp))
             .clickable { onExpand() }
-            .hazeEffect(
-                state = hazeState,
-                style = HazeStyle(
-                    tint = HazeTint(Color.Black.copy(alpha = 0.45f)),
-                    blurRadius = 25.dp
-                )
+            .hazeBlur(
+                input = HazeInput.Sources(hazeState),
+                style = HazeBlurStyle {
+                    blurRadius(25.dp)
+                    colorEffects(listOf(HazeColorEffect.tint(Color.Black.copy(alpha = 0.45f))))
+                }
             )
-            /*.hazeChild(
-                state = hazeState,
-                style = HazeStyle(
-                    tint = HazeTint(Color.Black.copy(alpha = 0.45f)),
-                    blurRadius = 25.dp
-                )
-            )*/
             .border(0.5.dp, Color.White.copy(alpha = 0.15f), RoundedCornerShape(22.dp))
     ) {
         Box(
@@ -159,8 +154,8 @@ fun MiniPlayer(
             IconButton(onClick = onTogglePlay) {
                 Icon(
                     imageVector = if (state.isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
-                    contentDescription = null,
-                    tint = Color.White
+                    contentDescription = if (state.isPlaying) stringResource(R.string.pause) else stringResource(R.string.play),
+                    tint = Color.White.copy(alpha = 0.5f)
                 )
             }
 

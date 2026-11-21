@@ -20,6 +20,8 @@
         android:enableOnBackInvokedCallback="true"
         android:theme="@style/Theme.Veena"
         tools:targetApi="36">
+        <activity android:name=".crash.CrashActivity" android:exported="false"
+            android:process=":crash" android:theme="@style/Theme.Veena" />
         <activity
             android:name=".MainActivity"
             android:exported="true"
