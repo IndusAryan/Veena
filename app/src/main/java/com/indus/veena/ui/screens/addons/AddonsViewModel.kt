@@ -99,19 +99,20 @@ class AddonsViewModel @Inject constructor(
         }
     }
 
-    private suspend fun checkUpdates(installed: List<LocalAddonItem>, remoteCatalog: List<CatalogExtensionItem>) {
+    private fun checkUpdates(installed: List<LocalAddonItem>, remoteCatalog: List<CatalogExtensionItem>) {
         _updateStatusMap.update { status -> status.filterKeys { id -> installed.any { it.id == id } } }
         installed.forEach { addon ->
             val catalogItem = remoteCatalog.find { it.id == addon.id }
-            val downloadUrl = addon.updateUrl.ifBlank { catalogItem?.downloadUrl.orEmpty() }
-
-            if (downloadUrl.contains("github.com")) {
-                val info = storeManager.fetchGithubUpdateInfo(downloadUrl, addon.id)
-                if (info != null && info.versionCode > addon.versionCode) {
-                    _updateStatusMap.update { it + (addon.id to info) }
-                } else {
-                    _updateStatusMap.update { it - addon.id }
-                }
+            if (catalogItem != null && catalogItem.versionCode > addon.versionCode) {
+                val info = UpdateInfo(
+                    version = catalogItem.version,
+                    downloadUrl = catalogItem.downloadUrl,
+                    size = catalogItem.size,
+                    versionCode = catalogItem.versionCode
+                )
+                _updateStatusMap.update { it + (addon.id to info) }
+            } else {
+                _updateStatusMap.update { it - addon.id }
             }
         }
     }

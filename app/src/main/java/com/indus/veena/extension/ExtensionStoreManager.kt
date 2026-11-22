@@ -3,9 +3,6 @@ package com.indus.veena.extension
 import android.content.Context
 import android.util.Log
 import com.indus.veena.di.ExtensionModule.json
-import com.indus.veena.models.GithubRelease
-import com.indus.veena.models.UpdateInfo
-import com.indus.veena.util.formatSize
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.currentCoroutineContext
@@ -44,7 +41,7 @@ class ExtensionStoreManager @Inject constructor(
     private val okHttpClient: OkHttpClient,
     private val extensionManager: ExtensionManager
 ) {
-    private val catalogUrl = "https://raw.githubusercontent.com/IndusAryan/Veena/refs/heads/main/app/src/main/assets/catalog.json"
+    private val catalogUrl = "https://github.com/Dp3seoQne/VeenaCommunityAddons/releases/latest/download/catalog.json"
     private val TAG = "ExtensionStoreManager"
 
     private val _downloadProgress = MutableStateFlow<Map<String, Float>>(emptyMap())
@@ -65,7 +62,6 @@ class ExtensionStoreManager @Inject constructor(
         }
     }
 
-    private val manifestCache = java.util.concurrent.ConcurrentHashMap<String, com.indus.veena.contract.ExtensionManifest>()
     private val installMutex = kotlinx.coroutines.sync.Mutex()
     private val _updateEvents = kotlinx.coroutines.channels.Channel<String>(kotlinx.coroutines.channels.Channel.UNLIMITED)
     val updateEvents = _updateEvents.receiveAsFlow()
@@ -152,72 +148,16 @@ class ExtensionStoreManager @Inject constructor(
         val catalog = fetchCatalog()
         extensionManager.extensions.value.values.toList().forEach { installed ->
             val manifest = installed.manifest
-            val item = catalog.find { it.id == manifest.id }
-            val source = manifest.updateUrl.ifBlank { item?.downloadUrl.orEmpty() }
-            try {
-                val info = fetchGithubUpdateInfo(source, manifest.id) ?: return@forEach
-                if (info.versionCode > manifest.versionCode) {
-                    installExtension(CatalogExtensionItem(manifest.id, manifest.name, info.version,
-                        info.versionCode, info.downloadUrl, manifest.iconUrl, manifest.description,
-                        manifest.author, false, info.size, manifest.capabilities), onlyIfNewer = true)
-                }
-            } catch (e: kotlinx.coroutines.CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                Log.e(TAG, "Auto-update failed for ${manifest.id}", e)
-            }
-        }
-    }
-
-    suspend fun fetchGithubUpdateInfo(downloadOrReleaseUrl: String, addonId: String): UpdateInfo? = withContext(Dispatchers.IO) {
-        if (!downloadOrReleaseUrl.contains("github.com")) return@withContext null
-
-        // Correctly matches owner and repo only (e.g., owner = Dp3seoQne, repo = VeenaCommunityAddons)
-        val match = Regex("""github\.com/([^/]+)/([^/]+)""").find(downloadOrReleaseUrl) ?: return@withContext null
-        val owner = match.groupValues[1]
-        val repo = match.groupValues[2]
-
-        // Clean target API endpoint
-        val apiUrl = "https://api.github.com/repos/$owner/$repo/releases/latest"
-
-        val request = Request.Builder()
-            .url(apiUrl)
-            .header("Accept", "application/vnd.github.v3+json")
-            .build()
-
-        try {
-            okHttpClient.newCall(request).execute().use { response ->
-                if (!response.isSuccessful) return@withContext null
-
-                val body = response.body.string()
-                val release = json.decodeFromString<GithubRelease>(body)
-
-                // Matches the asset file for this specific addon (e.g. np.veena, sc.veena, etc.)
-                val matchingAsset = release.assets.find {
-                    it.name.equals("$addonId.veena", ignoreCase = true)
-                } ?: return@withContext null
-                val candidate = File.createTempFile("update-", ".veena", context.cacheDir)
+            val item = catalog.find { it.id == manifest.id } ?: return@forEach
+            if (item.versionCode > manifest.versionCode) {
                 try {
-                    val cacheKey = "${matchingAsset.browser_download_url}:${matchingAsset.updated_at}:${matchingAsset.id}"
-                    val manifest = manifestCache[cacheKey] ?: run {
-                        downloadPackage(matchingAsset.browser_download_url, candidate)
-                        readManifest(candidate).also { parsed ->
-                            validate(parsed, addonId)
-                            manifestCache[cacheKey] = parsed
-                        }
-                    }
-                    validate(manifest, addonId)
-                    UpdateInfo(manifest.version, matchingAsset.browser_download_url,
-                        formatSize(matchingAsset.size), manifest.versionCode)
-                } finally {
-                    candidate.delete()
+                    installExtension(item, onlyIfNewer = true)
+                } catch (e: kotlinx.coroutines.CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    Log.e(TAG, "Auto-update failed for ${manifest.id}", e)
                 }
             }
-        } catch (e: kotlinx.coroutines.CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to check update metadata for $addonId", e)
-            null
         }
     }
 
